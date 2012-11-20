@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
+echo "blabla"
+
 lein deps
