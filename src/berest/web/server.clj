@@ -35,7 +35,7 @@
     (server/start port {:mode mode
                        :ns 'berest.web})))
 
-#_(defonce server (-main))
+(defonce server (-main))
 
 #_(-main)
 

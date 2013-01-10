@@ -24,15 +24,15 @@
 (defn get-entity-id [entity] (:db/id entity))
 
 (defn get-entities [entity-ids]
-  #_(map (partial d/entity *db*) entity-ids)
-  (map (partial datomic.db/get-entity *db*) entity-ids))
+  (map (partial d/entity *db*) entity-ids)
+  #_(map (partial datomic.db/get-entity *db*) entity-ids))
 (defn get-entity [entity-id]
   (first (get-entities [entity-id])))
 
 (defn create-map-from-entity-ids 
   [key value entity-ids]
   (->> entity-ids 
-    (map #(get-entity %) ,,,)
+    get-entities
     (map (juxt key value) ,,,) 
     (into (sorted-map) ,,,)))
 

@@ -34,7 +34,7 @@
                                  :db.install/_attribute :db.part/db}])
 
 ;; add schema
-(def schema-tx (read-string (slurp "C:/Users/michael/development/irrigation/src/clojure/berest/db/berest-schema.dtm")))
+(def schema-tx (read-string (slurp "C:/Users/michael/development/irrigation/src/clojure/weberest/db/berest-schema.dtm")))
 (d/transact datomic-connection schema-tx)
 
 ;add 1030/1/0 F-MAIS data
@@ -215,20 +215,34 @@
                   :technology/opt-donation 20
                   :technology/donation-step-size 5}
       
-      dc-assertion-1 {:db/id (new-entity-id)
-                      :assertion/crop (unique-query-for-db-id :crop/id "0703/1/0")
+       dc-assertion-1 {:db/id (new-entity-id)
+                      :assertion/in-year 2012
+                      :assertion/at-abs-day (date-to-doy 18 4)
                       :assertion/assert-dc 1
                       :assertion/abs-assert-dc-day (date-to-doy 18 4)}
       
       dc-assertion-2 {:db/id (new-entity-id)
-                      :assertion/crop (unique-query-for-db-id :crop/id "0703/1/0")
+                      :assertion/in-year 2012
+                      :assertion/at-abs-day (date-to-doy 28 5)
                       :assertion/assert-dc 10
                       :assertion/abs-assert-dc-day (date-to-doy 28 5)}
       
+      instance-703 {:db/id (new-entity-id)
+                    :crop-instance/template (unique-query-for-db-id :crop/id "0703/1/0") 
+                    :crop-instance/name "Kartoffel - 703/1/0"
+                    :crop-instance/dc-assertions (get-entity-ids [dc-assertion-1 dc-assertion-2])}
+      
       dc-assertion-3 {:db/id (new-entity-id)
-                      :assertion/crop (unique-query-for-db-id :crop/id "1030/1/0")
-                      :assertion/assert-dc 1
+                      :assertion/in-year 2012
+                      :assertion/at-abs-day (date-to-doy 28 8)
+                      :assertion/assert-dc 20
                       :assertion/abs-assert-dc-day (date-to-doy 28 8)}
+      
+      instance-1030 {:db/id (new-entity-id)
+                     :crop-instance/template (unique-query-for-db-id :crop/id "1030/1/0") 
+                     :crop-instance/name "Mais - 1030/1/0"
+                     :crop-instance/dc-assertions [(get-entity-id dc-assertion-3)]}
+       
       
       plot {:db/id (new-entity-id)
             ;:db/ident :plot.id/id-0400 
@@ -248,7 +262,7 @@
             :plot/initial-soil-moistures (get-entity-ids sms)
             :plot/initial-sm-unit :soil-moisture-unit/pFK 
             :plot/technology (get-entity-id technology)
-            :plot/dc-assertions (get-entity-ids [dc-assertion-1 dc-assertion-2 dc-assertion-3])}]
+            :plot/crop-instances (get-entity-ids [instance-703 instance-1030])}]
       
   (d/transact datomic-connection
               ;print
@@ -258,7 +272,9 @@
                         technology
                         dc-assertion-1
                         dc-assertion-2
+                        instance-703
                         dc-assertion-3
+                        instance-1030
                         plot])))
 
 

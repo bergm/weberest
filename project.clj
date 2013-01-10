@@ -6,7 +6,7 @@
                   [org.clojure/math.numeric-tower "0.0.1"]
                   #_[incanter "1.3.0"]
                   [incanter/incanter-core "1.4.0"]
-                  [com.datomic/datomic-free "0.8.3538"]
+                  [com.datomic/datomic-free "0.8.3704"]
                   [clj-time "0.4.2"]
                   #_[units "0.2.3"]
                   #_[frinj "0.1.3"]
@@ -23,6 +23,7 @@
                   [org.clojure/core.match "0.2.0-alpha11"]
                   [org.clojars.pallix/analemma "1.0.0"]
                   [com.cemerick/friend "0.1.2"]
+                  [org.clojure/algo.generic "0.1.0"]
                  ]
   :plugins [[lein-cljsbuild "0.2.5"]]
   :cljsbuild {:builds [{; The path to the top-level ClojureScript source directory:

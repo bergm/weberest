@@ -19,11 +19,13 @@
   (fn [& args]
     (apply f (concat args kw-args))))
 
-(defn --<* 
+(defn juxt* 
   "symbol for juxt and directly useable as a function with variable arguments  
 (at least be two)"
   [& rest] 
   ((apply juxt (butlast rest)) (last rest)))
+
+(def --<* juxt*)
 
 (defn swap [f arg1 arg2]
   (f arg2 arg1))
