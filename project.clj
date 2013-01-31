@@ -2,38 +2,45 @@
   :min-lein-version "2.0.0"
   :description "FIXME: write description"
   :dependencies [[org.clojure/clojure "1.4.0"]
-                  #_[com.novemberain/monger "1.0.0-beta4"]
-                  [org.clojure/math.numeric-tower "0.0.1"]
-                  #_[incanter "1.3.0"]
-                  [incanter/incanter-core "1.4.0"]
-                  [com.datomic/datomic-free "0.8.3704"]
-                  [clj-time "0.4.2"]
-                  #_[units "0.2.3"]
-                  #_[frinj "0.1.3"]
-                  #_[unfix "1.0"]
-                  [egamble/let-else "1.0.4"]
-                  [clojure-csv/clojure-csv "2.0.0-alpha1"]
-                  [noir "1.3.0-beta10"]
-                  #_[enlive "1.0.1"]
-                  #_[the/parsatron "0.0.2"] ;current version directly copied to src
-                  #_[org.clojure/tools.macro "0.1.1"]
-                  [cheshire "4.0.3"]
-                  [clj-info "0.2.6"]
-                  [com.keminglabs/c2 "0.2.0"]
-                  [org.clojure/core.match "0.2.0-alpha11"]
-                  [org.clojars.pallix/analemma "1.0.0"]
-                  [com.cemerick/friend "0.1.2"]
-                  [org.clojure/algo.generic "0.1.0"]
+                 [org.clojure/math.numeric-tower "0.0.1"]
+                 [incanter/incanter-core "1.4.0"]
+                 [com.datomic/datomic-free "0.8.3704"]
+                 [clj-time "0.4.2"]
+                 [egamble/let-else "1.0.4"]
+                 [clojure-csv/clojure-csv "2.0.0-alpha1"]
+                 #_[org.clojure/data.csv "0.1.2"]
+                 [compojure "1.1.3"]
+                 [ring/ring-core "1.1.8"]
+                 [lib-noir "0.3.3"]
+                 [hiccup "1.0.2"]
+                 #_[enlive "1.0.1"]
+                 #_[the/parsatron "0.0.2"] ;current version directly copied to src
+                 #_[org.clojure/tools.macro "0.1.1"]
+                 [cheshire "4.0.3"]
+                 [clj-info "0.2.6"]
+                 [com.keminglabs/c2 "0.2.0"]
+                 [org.clojure/core.match "0.2.0-alpha11"]
+                 [org.clojars.pallix/analemma "1.0.0"]
+                 [com.cemerick/friend "0.1.3"]
+                 [org.clojure/algo.generic "0.1.0"]
+                 [bouncer "0.2.0"]
+                 [enfocus "1.0.0-beta2"]
+                 [prismatic/dommy "0.0.1"]
+                 [domina "1.0.0"]
+                 [org.clojure/google-closure-library-third-party "0.0-2029"]
+                 [formative "0.3.2"]
                  ]
-  :plugins [[lein-cljsbuild "0.2.5"]]
+  :plugins [[lein-cljsbuild "0.3.0"]]
   :cljsbuild {:builds [{; The path to the top-level ClojureScript source directory:
-                        :source-path "src-cljs"
+                        ;:source-paths ["src"]
+                        :source-path "src"
                         ; The standard ClojureScript compiler options:
                         ; (See the ClojureScript compiler documentation for details.)
                         :compiler {:output-to "resources/public/cljs/main.js"  ; default: main.js in current directory
                                    :output-dir "resources/public/cljs"
                                    :optimizations :whitespace
                                    :pretty-print true}}]}
-  :main ^{:skip-aot true} berest.web.server
-  ;:main ^{:skip-aot true} berest.core
+  :ring {:handler weberest.web.routes/berest-app}
+  ;:main ^{:skip-aot true} weberest.web.server
+  ;:main ^{:skip-aot true} weberest.core
   )
