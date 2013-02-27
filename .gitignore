@@ -4,3 +4,9 @@ pom.xml
 /classes/
 .lein-deps-sum
 .cake
+/bin
+/out.csv
+/target
+/.project
+/.classpath
+/.settings
