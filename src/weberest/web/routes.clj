@@ -67,13 +67,14 @@
                 (rur/redirect (str "/farms/" farm-id "/plots/new")))))
             
       (GET "/test" []
-           (common/layout (plot/test-plot-layout farm-id)))
+           ;(friend/authenticated
+            (common/layout (plot/test-plot-layout farm-id)));)
       
       (POST "/test.csv" {test-data :params}
-            (friend/authenticated
+            ;(friend/authenticated
              (-> (plot/calc-test-plot farm-id test-data)
                  rur/response
-                 (rur/content-type "text/csv"))))
+                 (rur/content-type "text/csv")));)
       
       (GET "/:plot-id" [plot-id until]
            (friend/authenticated

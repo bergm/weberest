@@ -1,7 +1,8 @@
 (ns weberest.web.views.plot
   (:require [weberest.web.views.common :as common]
             [hiccup [element :as he]
-                    [form :as hf]]
+                    [form :as hf]
+                    [page :as hp]]
             #_[net.cgrand.enlive-html :as html]
             [weberest 
              [core :as bc]
