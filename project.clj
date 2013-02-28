@@ -11,6 +11,7 @@
                  #_[org.clojure/data.csv "0.1.2"]
                  [compojure "1.1.3"]
                  [ring/ring-core "1.1.8"]
+                 [ring/ring-jetty-adapter "0.3.8"]
                  [lib-noir "0.3.3"]
                  [hiccup "1.0.2"]
                  #_[enlive "1.0.1"]
@@ -30,6 +31,7 @@
                  [org.clojure/google-closure-library-third-party "0.0-2029"]
                  [formative "0.3.2"]
                  ]
+  :exclusions [org.mortbay.jetty/servlet-api]              
   :plugins [[lein-cljsbuild "0.3.0"]]
   :cljsbuild {:builds [{; The path to the top-level ClojureScript source directory:
                         ;:source-paths ["src"]
