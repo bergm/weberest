@@ -346,8 +346,8 @@
                                        days (map f values)
                                        {:stroke color :fill color}))])))]]))
 
-(defn- plot-content [id until]
-  (let? [db (-?>> "berest"
+(defn- plot-content [user-id id until]
+  (let? [db (-?>> user-id
               (str bd/datomic-base-uri ,,,)
               d/connect
               d/db)
@@ -627,12 +627,12 @@
         
         ]))
 
-(defn plot-layout [id until]
+(defn plot-layout [user-id farm-id id until]
   [:div 
-   [:h1 (str "Schlag: " id)]
+   [:h1 (str "user-id: " user-id " farm-id: " farm-id " Schlag: " id)]
    #_[:svg {:height 200} [:rect#bla {:x 0 :y 0 :width 100 :height 100 :style "fill:red"}]]
    #_(he/javascript-tag "weberest.web.views.client.call_transform_rect();")
-   (plot-content id until)
+   (plot-content user-id id until)
    (he/javascript-tag "weberest.web.views.client.setup_value_display_svg_listeners();")])
 
 (def default-weather-data
@@ -671,7 +671,7 @@
                {:name :weather-data :type :textarea :label "Wetterdaten"}
                {:name :irrigation-data :type :textarea :label "Beregnungswasser"}]})
 
-(defn test-plot-layout [farm-id]
+(defn test-plot-layout [user-id farm-id]
   (f/render-form (assoc test-plot-form
                         :method :post
                         :action (str "/farms/" farm-id "/plots/test.csv"))))
@@ -700,16 +700,18 @@
 (defn parse-irrigation-data [irrigation-data delim]
   (for [[abs-day amount] (rest (csv/parse-csv irrigation-data 
                                               :delimiter delim))]
-       {:irrigation/abs-day abs-day
-        :irrigation/amount amount}))
+       {:irrigation/abs-day (Integer/parseInt abs-day)
+        :irrigation/amount (Float/parseFloat amount)}))
 
+;right now user-id as used as name for the database the user uses
+;this should be changed if web-app db is used and holds configuration data for users
 (defn calc-test-plot 
-  [farm-id {:keys [plot-id until-julian-day 
-                   until-day until-month 
-                   weather-data irrigation-data]
-            [csv-delimiter] :csv-delimiter
-            :as test-data}]
-  (let? [db (-?>> "berest"
+  [user-id farm-id {:keys [plot-id until-julian-day 
+                           until-day until-month 
+                           weather-data irrigation-data]
+                          [csv-delimiter] :csv-delimiter
+                          :as test-data}]
+  (let? [db (-?>> user-id
               (str bd/datomic-base-uri ,,,)
               d/connect
               d/db)
@@ -722,16 +724,20 @@
                       bc/weather-map
                       (parse-weather-data weather-data csv-delimiter))
         
-         irrigation-donations-map 
+         irrigation-donations 
          (if (cs/blank? irrigation-data)
              (bc/read-irrigation-donations db (:plot/number plot) 
                                            (:plot/irrigation-area plot))
              (parse-irrigation-data irrigation-data csv-delimiter))
-         
+                  
          until-julian-day* (Integer/parseInt until-julian-day)
-         inputs (bc/create-input-seq plot weathers irrigation-donations-map 
-                                     (+ until-julian-day* 7) :spinkle-losses)
+         inputs (bc/create-input-seq plot weathers irrigation-donations 
+                                     (+ until-julian-day* 7) :sprinkle-losses)
          inputs-7 (drop-last 7 inputs)
+         
+         ;xxx (map (|-> (--< :abs-day :irrigation-amount) str) inputs-7)
+         ;_ (println xxx)
+         
          prognosis-inputs (take-last 7 inputs)
          days (range (-> inputs first :abs-day) (+ until-julian-day* 7 1))
          
@@ -743,7 +749,7 @@
          prognosis* (bc/calc-soil-moisture-prognosis* 7 prognosis-inputs soil-moistures-7)
          prognosis (last prognosis*)
          #_(bc/calc-soil-moisture-prognosis 7 prognosis-inputs soil-moistures-7)
-         
+                  
          #_no-of-layers 
          #_(-> sms-7* 
              first 
@@ -759,16 +765,19 @@
             
         ;sms-days (map :abs-day (rest sms-7*))
         ]
-        (csv/write-csv (bc/create-csv-output inputs (concat sms-7* prognosis*))
+        
+        ;use rest on sms-7* etc. to skip the initial value prepended by reductions 
+        ;which doesn't fit to the input list
+        (csv/write-csv (bc/create-csv-output inputs (concat (rest sms-7*) (rest prognosis*)))
                        :delimiter ";")))  
   
-(defn plots-layout [farm-id]
-  [:div "all plots in farm " farm-id])
+(defn plots-layout [user-id farm-id]
+  [:div "user-id: " user-id " all plots in farm " farm-id])
 
-(defn create-plot [farm-id plot-data]
+(defn create-plot [user-id farm-id plot-data]
   (:id plot-data))
 
-(defn new-plot-layout [farm-id]
+(defn new-plot-layout [user-id farm-id]
   (hf/form-to [:post (str "/farms/" farm-id "/plots/new")]
     [:div 
       (hf/label "id" "Schlagnummer")

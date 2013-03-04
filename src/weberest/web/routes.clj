@@ -24,69 +24,65 @@
 ;;farms
 ;;----------------------------------------------------------------
 
+(defn- user-id [request]
+  (-> request
+      friend/current-authentication
+      :username))
+
 (defroutes farm-routes
   (compojure/context 
-    "/farms" request
+    "/farms" req
     
     (GET "/:farm-id" [farm-id]
-         ;(friend/authorize #{::user}
-         (friend/authenticated
-           (common/layout 
-             (if (= farm-id "new")
-               (farm/new-farm-layout)
-               (farm/farm-layout farm-id)))))
+         (common/layout+js 
+          (if (= farm-id "new")
+              (farm/new-farm-layout (user-id req))
+              (farm/farm-layout (user-id req) farm-id))))
     
     ; upon creation of farm go to new farm or failure to input form again
     (POST "/new" {new-farm-data :form-params}
-          (friend/authenticated
-            (if-let [new-farm-id (farm/create-farm new-farm-data)]
-              (rur/redirect (str "/farms/" new-farm-id))
-              (rur/redirect "/farms/new")))))
+          (if-let [new-farm-id (farm/create-farm (user-id req) new-farm-data)]
+                  (rur/redirect (str "/farms/" new-farm-id))
+                  (rur/redirect "/farms/new"))))
   
-  (GET "/farms" []
-       (friend/authenticated 
-         (common/layout (farm/farms-layout)))))
+  (GET "/farms" req
+       (common/layout+js (farm/farms-layout (user-id req)))))
   
 ;;plots
 ;;----------------------------------------------------------------
 
 (defroutes plot-routes
   (compojure/context 
-    "/farms/:farm-id" [farm-id]
+    "/farms/:farm-id" [farm-id :as req]
     
     (compojure/context 
       "/plots" []
       
       (GET "/new" []
-           (common/layout (plot/new-plot-layout farm-id)))
+           (common/layout (plot/new-plot-layout (user-id req) farm-id)))
       
       (POST "/new" {new-plot-data :form-params}
-            (friend/authenticated
-              (if-let [new-plot-id (plot/create-plot farm-id new-plot-data)]
-                (rur/redirect (str "/farms/" farm-id "/plots/" new-plot-id))
-                (rur/redirect (str "/farms/" farm-id "/plots/new")))))
+            (if-let [new-plot-id (plot/create-plot (user-id req) farm-id new-plot-data)]
+                    (rur/redirect (str "/farms/" farm-id "/plots/" new-plot-id))
+                    (rur/redirect (str "/farms/" farm-id "/plots/new"))))
             
       (GET "/test" []
-           ;(friend/authenticated
-            (common/layout (plot/test-plot-layout farm-id)));)
+           (common/layout (plot/test-plot-layout (user-id req) farm-id)))
       
       (POST "/test.csv" {test-data :params}
-            ;(friend/authenticated
-             (-> (plot/calc-test-plot farm-id test-data)
-                 rur/response
-                 (rur/content-type "text/csv")));)
+            (-> (plot/calc-test-plot (user-id req) farm-id test-data)
+                rur/response
+                (rur/content-type "text/csv")))
       
       (GET "/:plot-id" [plot-id until]
-           (friend/authenticated
-             (common/layout 
-              (plot/plot-layout plot-id 
-                                (if until 
-                                    (Integer/parseInt until)
-                                    250))))))
+           (common/layout+js 
+            (plot/plot-layout (user-id req) farm-id plot-id 
+                              (if until 
+                                  (Integer/parseInt until)
+                                  250)))))
             
     (GET "/plots" {:keys [farm-id]}
-         (friend/authenticated
-           (common/layout (plot/plots-layout farm-id))))))
+         (common/layout (plot/plots-layout (user-id req) farm-id)))))
 
 ;;climate
 ;;----------------------------------------------------------------
@@ -117,26 +113,19 @@
 (defroutes 
  crop-routes
  
- (compojure/context 
-  "/users/:user-id" [user-id]
+  (GET "/crops/:crop-id" [crop-id :as req]
+       (common/layout 
+        (if (= crop-id "new")
+            (crop/new-crop-layout (user-id req))
+            (crop/crop-layout (user-id req) crop-id))))
   
-  (GET "/crops/:crop-id" [crop-id]
-       ;(friend/authorize #{:user}
-       (friend/authenticated
-        (common/layout 
-         (if (= crop-id "new")
-             (crop/new-crop-layout)
-             (crop/crop-layout crop-id)))))
+  (POST "/crops/new" {new-crop-data :form-params :as req}
+        (if-let [new-crop-id (crop/create-crop (user-id req) new-crop-data)]
+                (rur/redirect (str "/crops/" new-crop-id))
+                (rur/redirect "/crops/new")))
   
-  (POST "/crops/new" {new-crop-data :form-params}
-        (friend/authenticated
-         (if-let [new-crop-id (crop/create-crop new-crop-data)]
-                 (rur/redirect (str "/crops/" new-crop-id))
-                 (rur/redirect "/crops/new"))))
-  
-  (GET "/crops" []
-       (friend/authenticated 
-        (common/layout (crop/crops-layout))))))
+  (GET "/crops" req
+       (common/layout (crop/crops-layout (user-id req)))))
 
 ;;technology
 ;;----------------------------------------------------------------
@@ -199,7 +188,7 @@
 
 (defroutes db-ops-routes
   (compojure/context 
-    "/dbs" []
+    "/users/admin/dbs" []
     
     (GET "/new" []
          (common/layout (db/new-db-layout)))
@@ -221,7 +210,7 @@
     (PUT "/:id/test-data" [id]
          (db/install-test-data id)))
   
-  (GET "/dbs" []
+  (GET "/uses/admin/dbs" []
        (common/layout (db/dbs-layout))))
 
 ;;start
@@ -234,8 +223,8 @@
 (defroutes user-routes
   start-routes
   login-out-routes
-  farm-routes
-  plot-routes
+  (friend/wrap-authorize farm-routes #{::user})
+  (friend/wrap-authorize plot-routes #{::user})
   (route/resources "/")
   (route/not-found "Page not found."))
 
@@ -254,12 +243,15 @@
 ;-----------------------------------------------------------------
 
 (def users 
-  {"admin" {:username "admin"
-            :password (creds/hash-bcrypt "admin")
-            :roles #{::admin}}
-   "michael" {:username "michael"
-              :password (creds/hash-bcrypt "michael")
-              :roles #{::user}}})
+     {"admin" {:username "admin"
+               :password (creds/hash-bcrypt "zadmin")
+               :roles #{::admin}}
+      "berest" {:username "berest"
+                :password (creds/hash-bcrypt "zalf")
+                :roles #{::user}}
+      "dev" {:username "dev"
+             :password (creds/hash-bcrypt "zdev")
+             :roles #{::admin}}})
 
 (derive ::admin ::user)
 

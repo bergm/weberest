@@ -6,8 +6,8 @@
                   [validation :as vali]]
             [hiccup.form :as hf]))
 
-(defn crop-layout [id]
-  [:div "crop no " id]
+(defn crop-layout [user-id id]
+  [:div "user-id: " user-id " crop no " id]
   #_(if-let [plot (bc/db-read-plot id)]
     (let []
       [:h1 (str "Schlag: " id)]
@@ -16,14 +16,14 @@
             (str "DC: ")]])
     ([:div#error "Fehler: Konnte Schlag mit Nummer: " id " nicht laden!"])))
 
-(defn crops-layout []
-  [:div "all crops"])
+(defn crops-layout [user-id]
+  [:div "user-id: " user-id " all crops"])
 
-(defn create-crop [crop-data]
+(defn create-crop [user-id crop-data]
   (:id crop-data))
 
-(defn new-crop-layout []
-  (hf/form-to [:post "/crops/new"]
+(defn new-crop-layout [user-id]
+  (hf/form-to [:post (str "/users/" user-id "/crops/new")]
     [:div 
       (hf/label "id" "Fruchtartnummer")
       (hf/text-field "id" "111")]

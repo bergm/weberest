@@ -1,7 +1,7 @@
 (defproject berest "1.0.0-SNAPSHOT"
   :min-lein-version "2.0.0"
   :description "FIXME: write description"
-  :dependencies [[org.clojure/clojure "1.4.0"]
+  :dependencies [[org.clojure/clojure "1.5.0"]
                  [org.clojure/math.numeric-tower "0.0.1"]
                  [incanter/incanter-core "1.4.0"]
                  [com.datomic/datomic-free "0.8.3704"]

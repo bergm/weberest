@@ -5,7 +5,9 @@
             [incanter.core :as ic]
             [clojure.string :as cstr]
             [clojure.pprint :as pp]
-            [clj-time.core :as ctc]
+            [clj-time 
+             [core :as ctc]
+             [format :as ctf]]
             [weberest 
              [datomic :as bd]
              [util :as bu]]
@@ -22,11 +24,11 @@
 
 ;(frinj-init!)
 
-(def ^{:berest/unit :cm} max-soil-depth 150)
-#_(def layer-sizes (flatten [5 5 (repeat 19 10)]))
-(def ^{:dynamic true :berest/unit :cm} *layer-sizes* [10 20 30 40 50])
+(def ^{:dynamic true :berest/unit :cm} *layer-sizes* (flatten [5 5 (repeat 19 10)]))
+#_(def ^{:dynamic true :berest/unit :cm} *layer-sizes* [10 20 30 40 50])
 (defn ^{:berest/unit :cm} layer-depths [] (reductions + *layer-sizes*))
 (defn no-of-soil-layers [] (count *layer-sizes*))
+(def ^{:berest/unit :cm} max-soil-depth (last (layer-depths)))
 
 (defn pFK->mm7x 
   "fc [mm/x] -> [mm/x]" 
@@ -285,7 +287,10 @@ fakt:=1 + 0.77 * SIN(0.01571 * (t - 166));"}
 
 (defn donations-at [donations day]
   (reduce
-    (fn [acc d] (if (= day (:irrigation/abs-day d)) (+ acc (:irrigation/amount d)) acc))
+    (fn [acc d] 
+      (if (= day (:irrigation/abs-day d)) 
+          (+ acc (:irrigation/amount d)) 
+          acc))
     0 donations))
 
 (comment
@@ -476,42 +481,6 @@ fc, pwp [mm/cm] -> [mm/cm]"
                              db number cultivation-type usage))]
     (db-create-crop db crop-id)))
 
-
-#_(defn replace-entities 
-  "replaces in map m entity-ids referenced by the given entity keywords 
-with their respective entities recursively
-- entity-kws should be of form 
-- [:keyword1 :keyword2 ...] or
-- [:keyword1 :keyword2 [:sub-keyword2-1 :sub-keyword2-2] ...]
-- [:keyword1 {:keyword2 replace-function-for-keyword2} ...], thus
-a keyword can be replaced by a map of one pair mapping keyword to a function able to 
-replace the keyword by its entity, else the default function db/get-entity will be used"
-  [m entity-kws]
-  (->> entity-kws
-    ;create pairs of keywords and lists of possible sub-keywords to replace
-    (partition 2 1 [:nothing] ,,,)
-    ;remove sub-keywords at first place (but keep maps with custom replace/load function)
-    (remove (fn [[first _]] (and (coll? first) (not (map? first)))) ,,,)
-    ;transform single keyword at second place to empty sub-keyword list
-    (map (fn [[first second]] [first (if (keyword? second) [] second)]))
-    ;transform recursively entity-ids to sub-maps (should only be very shallow, so no stack-overflow)
-    (reduce (fn [m [e-kw?f sub-e-kws]]
-              (let [;get actual keyword and possibly associated replace function (or default)
-                    [e-kw func] (if (map? e-kw?f) 
-                                  (first e-kw?f) 
-                                  [e-kw?f db/get-entity]) 
-                    ;always create collection of ids (even if just one is returned)
-                    e-id?s (e-kw m)
-                    e-ids (if (coll? e-id?s) e-id?s [e-id?s]) 
-                    ;get the maps according to the ids from previous step
-                    e-maps (map func e-ids) 
-                    ;possibly sub-replace sub-keywords in all returned maps
-                    e-maps* (map #(replace-entities % sub-e-kws) e-maps)]
-                ;and replace entity-id by entity
-                (assoc m e-kw (if (= (count e-maps*) 1) (first e-maps*) e-maps*)))) 
-            m
-            ,,,)))
-
 (defn entity->map 
   [db entity]
   (letfn [(copy [value] (if (= datomic.query.EntityMap (type value))
@@ -535,7 +504,6 @@ replace the keyword by its entity, else the default function db/get-entity will 
            
            ; abbreviation
            cmfe 
-           #_#(bd/create-map-from-entity-ids %1 %2 %3)
            #(bd/create-map-from-entities %1 %2 %3)
            
            fcs-cm (->> (:plot/field-capacities plot)
@@ -567,9 +535,6 @@ replace the keyword by its entity, else the default function db/get-entity will 
            fallow (db-read-crop db 0 :cultivation-type 1 :usage 0) ]
       
       (-> (entity->map db plot)
-        #_(replace-entities ,,, [:plot/technology 
-                                 :plot/dc-assertions [:assertion/crop]])
-        #_(replace-entities ,,, [:plot/dc-assertions [:assertion/crop [{:crop/template db-create-crop}]]])
         ((fn [p] (clojure.walk/postwalk (fn [item] 
                                           (if (vector? item)
                                             (let [[kw db-crop-data-map] item]
@@ -1001,93 +966,6 @@ to which actual abs-day the reached DC state belongs given the dc-assertions"
        ;asserted dc-day
        :abs-reached-dc-day (+ abs-assert-dc-day (- rel-reached-dc-day rel-assert-dc-day))})))
 
-#_(defn- sorted-crop-start-data 
-  "create sorted map of crop start data from dc-assertions and possible absolute minimal start day
--> map will be sorted according to abs-start-day and then abs-assert-dc-day"
-  [dc-assertions abs-min-start-day]
-  (into (sorted-map-by <-start-day=-<-assert-day-comparator)
-        (for [dca dc-assertions 
-              :let [{:keys [crop assert-dc abs-assert-dc-day] :as dc-assertion} 
-                    (remove-namespace-1 dca)]]
-          (let [dc-to-rel-dc-days (-> crop :crop/dc-to-rel-dc-days)
-                
-                ;absolute start day
-                abs-start-day (-> dc-to-rel-dc-days
-                                (abs-search-dc-day ,,, dc-assertion
-                                                       1)
-                                (max ,,, abs-min-start-day))
-                
-                ;relative start day in crop curve according to absolute day for current crop
-                rel-start-dc-day (rel-search-dc-day dc-to-rel-dc-days 
-                                                    dc-assertion
-                                                    abs-start-day)] 
-            [[abs-start-day abs-assert-dc-day] {:abs-start-day abs-start-day
-                                                :rel-start-dc-day rel-start-dc-day
-                                                :crop crop}]))))
-
-#_(defn- sorted-crop-start-data 
-  "create sorted seq of crop start data from dc-assertions and possible absolute minimal start day
-the seq will be sorted according to descending abs-assert-dc-day"
-  [dc-assertions abs-min-start-day]
-  (->> (for [dca dc-assertions 
-             :let [{:keys [crop assert-dc abs-assert-dc-day] :as dc-assertion} 
-                   (remove-namespace-1 dca)]]
-         (let [dc-to-rel-dc-days (-> crop :crop/dc-to-rel-dc-days)
-               
-               ;absolute start day
-               abs-start-day (-> dc-to-rel-dc-days
-                               (abs-search-dc-day ,,, dc-assertion
-                                                      1)
-                               (max ,,, abs-min-start-day))
-               
-               ;relative start day in crop curve according to absolute day for current crop
-               rel-start-dc-day (rel-search-dc-day dc-to-rel-dc-days 
-                                                   dc-assertion
-                                                   abs-start-day)] 
-           {:abs-start-day abs-start-day
-            :abs-assert-dc-day abs-assert-dc-day
-            :rel-start-dc-day rel-start-dc-day
-            :crop crop}))
-    (sort-by :abs-assert-dc-day > ,,,)))
-
-#_(def ^:private sorted-crop-start-data* 
-  "memoized version of sorted-crop-start-data"
-  (memoize sorted-crop-start-data))
-
-#_(def ^:private sorted-crop-start-data* 
-  "memoized version of sorted-crop-start-data"
-  (memoize sorted-crop-start-data))
-
-#_(defn crop-start-data-at-abs-day 
-  "get crop start data from dc-assertions for given abs-day
-(might involve corrections for start data for multiple dc assertions for the same crop at later
-abs-days) using as lower border for fallow the given abs-min-start-day"
-  [dc-assertions abs-min-start-day abs-day]
-  (let? [;default if no crop there
-         fallow {:abs-start-day 1
-                 :rel-start-dc-day 1
-                 :crop (db-read-crop 0 :cultivation-type 1 :usage 0)}
-         
-         {:keys [crop 
-                 abs-start-day]
-          :as crop-data} (->> (sorted-crop-start-data* dc-assertions abs-min-start-day)
-                           ;get only ones asserted before abs-day
-                           (drop-while #(> (:abs-assert-dc-day %) abs-day) ,,,)
-                           ;get closest assertion and that abs-start-day
-                           first)
-         :else fallow 
-        
-        ;get the end abs-day for current crop and check if it hasn't been harvested yet
-        abs-crop-end (->> crop
-                       :crop/dc-to-rel-dc-days
-                       last
-                       second
-                       (+ abs-start-day ,,,))
-        :is (partial <= abs-day)
-        :else fallow]
-        
-        crop-data))
-
 (defn dc-to-abs+rel-dc-day-from-crop-instance-dc-assertions
   "create a dc to abs+rel-dc-day map from the data given with crop-instance
 (dc-assertions and the crop template, thus the dc-to-rel-dc-day curve)"
@@ -1265,7 +1143,7 @@ is always fallow unless another crop follows with a dc > 1 (see a)"
   "create a input sequence for soil-moisture calculations
 - takes into account dc assertions which are available in plot map
 - lazy sequence as long as weather is available"
-  [plot sorted-weather-map irrigation-donations-map irrigation-mode]
+  [plot sorted-weather-map irrigation-donations irrigation-mode]
   (let [abs-dc-day-to-crop-instance-data  
         (->> (:plot/crop-instances plot)
           dc-to-abs+rel-dc-day-from-plot-dc-assertions
@@ -1282,11 +1160,11 @@ is always fallow unless another crop follows with a dc > 1 (see a)"
                                                       (dec rel-dc-day))
             
             cover-degree (interpolated-value (:crop/rel-dc-day-to-cover-degrees crop) rel-dc-day)] 
-        
+                
         {:abs-day abs-day
          :rel-dc-day rel-dc-day
          :crop crop
-         :irrigation-amount (donations-at irrigation-donations-map abs-day)
+         :irrigation-amount (donations-at irrigation-donations abs-day)
          :evaporation (bu/round (:evaporation weather) :digits 1)  
          :precipitation (bu/round (:precipitation weather) :digits 1) 
          :irrigation-mode irrigation-mode
@@ -1313,10 +1191,10 @@ is always fallow unless another crop follows with a dc > 1 (see a)"
 
 (defn create-input-seq 
   "create the input sequence for all the other functions"
-  [plot sorted-weather-map irrigation-donations-map until-abs-day irrigation-mode]
+  [plot sorted-weather-map irrigation-donations until-abs-day irrigation-mode]
   (->> (base-input-seq plot 
                        sorted-weather-map 
-                       irrigation-donations-map
+                       irrigation-donations
                        irrigation-mode)
     (drop (dec (:plot/abs-day-of-initial-soil-moisture-measurement plot)) ,,,)
     (take-while #(<= (:abs-day %) until-abs-day) ,,,)))
@@ -1362,7 +1240,9 @@ all intermediate steps, unless red-fn is defined to be reduce"
     ;always create map, even if we just used reduce as red-fn
     (#(if (map? %) [%] %) ,,,) 
     ;calculate averages of result(s)
-    (map-indexed (fn [i v] (average-prognosis-result (inc i) v)) ,,,)))
+    (map-indexed (fn [i v] 
+                     (average-prognosis-result (inc i) v)) 
+                 ,,,)))
 
 (defn calc-soil-moisture-prognosis
   "calculate the soil-moisture prognosis in prognosis-days using inputs and the given soil-moisture"
@@ -1552,7 +1432,9 @@ the technological restrictions"
      :recommendation-text recommendation-text}))
 
 (defn create-csv-output [inputs full-reductions-results]
-  (let [header-line ["CLJ day"
+  (let [header-line ["CLJ doy"
+                     "CLJ date"
+                     "CLJ rel DC day"
                      "CLJ precip"
                      "CLJ evap"
                      "CLJ irrWater"
@@ -1566,13 +1448,33 @@ the technological restrictions"
                      "CLJ mm 30-60cm"
                      "CLJ mm 60-100cm"
                      "CLJ mm 100-150cm"
-                     "CLJ mm 0-30cm"
-                     "CLJ mm 30-60cm"
-                     "CLJ rel DC day"
-                     "CLJ lambda"]
+                     "CLJ mm 5cm"
+                     "CLJ mm 10cm"
+                     "CLJ mm 20cm"
+                     "CLJ mm 30cm"
+                     "CLJ mm 40cm"
+                     "CLJ mm 50cm"
+                     "CLJ mm 60cm"
+                     "CLJ mm 70cm"
+                     "CLJ mm 80cm"
+                     "CLJ mm 90cm"
+                     "CLJ mm 100cm"
+                     "CLJ mm 110cm"
+                     "CLJ mm 120cm"
+                     "CLJ mm 130cm"
+                     "CLJ mm 140cm"
+                     "CLJ mm 150cm"
+                     "CLJ mm 160cm"
+                     "CLJ mm 170cm"
+                     "CLJ mm 180cm"
+                     "CLJ mm 190cm"
+                     "CLJ mm 200cm"]
         
         body-lines (map (fn [input rres]
                           (map str [(:abs-day input) 
+                                    (ctf/unparse (ctf/formatter "dd.MM.") 
+                                                 (bu/doy-to-date (:abs-day input)))
+                                    (:rel-dc-day input)
                                     (:precipitation input)
                                     (- (:evaporation input))
                                     (:irrigation-amount input)
@@ -1581,15 +1483,32 @@ the technological restrictions"
                                     (:aet7pet rres)
                                     (:qu-target rres)
                                     (:groundwater-infiltration rres)
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 0 2))
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 2 4))
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 4 7))
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 7 11))
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 11 16))
                                     (nth (:soil-moistures rres) 0)
                                     (nth (:soil-moistures rres) 1)
                                     (nth (:soil-moistures rres) 2)
                                     (nth (:soil-moistures rres) 3)
                                     (nth (:soil-moistures rres) 4)
-                                    (ic/sum (subvec (vec (:soil-moistures rres)) 0 2))
-                                    (nth (:soil-moistures rres) 2)
-                                    (:rel-dc-day input)
-                                    0]))
+                                    (nth (:soil-moistures rres) 5)
+                                    (nth (:soil-moistures rres) 6)
+                                    (nth (:soil-moistures rres) 7)
+                                    (nth (:soil-moistures rres) 8)
+                                    (nth (:soil-moistures rres) 9)
+                                    (nth (:soil-moistures rres) 10)
+                                    (nth (:soil-moistures rres) 11)
+                                    (nth (:soil-moistures rres) 12)
+                                    (nth (:soil-moistures rres) 13)
+                                    (nth (:soil-moistures rres) 14)
+                                    (nth (:soil-moistures rres) 15)
+                                    (nth (:soil-moistures rres) 16)
+                                    (nth (:soil-moistures rres) 17)
+                                    (nth (:soil-moistures rres) 18)
+                                    (nth (:soil-moistures rres) 19)
+                                    (nth (:soil-moistures rres) 20)]))
                         inputs full-reductions-results)]
     (cons header-line body-lines)))
 
@@ -1649,433 +1568,3 @@ the technological restrictions"
         irrigation-mode :sprinkle-losses]
     (run plot weather irrigation-donations-map (bu/date-to-doy 29 5) irrigation-mode)))
 
-#_(-main)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#_(defn height 
-  [rel-dc-day soil-moistures plot qu-target technology irrigation-mode weathers out]
-  (let [crop (:crop plot)
-        direction 0
-        
-        irrigation-days (max 4 (min (:cycle-days technology) 14))
-        
-        qu-eff (- qu-target (:crop/effectivity-quotient crop))
-                
-        {donation :donation
-         recommendation-text :message} 
-        (if (< qu-target 1/10) 
-          {:donation 0
-           :message "Entw/Zeitr"}
-          (let [;calculate soil-moisture in given future time without any irrigation as base value
-                {qu-0-target :qu-avg-target
-                 qu-0-current :qu-avg-current} (sm-x-days irrigation-days (abs-pre-calculation-day plot) rel-dc-day
-                                                          soil-moistures plot true irrigation-mode [] weathers out) ;q-ist bei hhOpt=0
-                {donation :donation
-                 recommendation-text* :message} 
-                (if (< qu-0-current qu-0-target)
-                  ;without irrigation we're below the target curve
-                  (if (< qu-eff qu-0-current)
-                    ;but we're above the effective curve, thus try again in about 4 days
-                    {:donation 0
-                     :message "in ca 4 Tg"}
-                    ;nope, we've got to irrigate 
-                    (let [min-donation (:min-donation technology)
-                          max-donation (:max-donation technology)
-                          opt-donation (:opt-donation technology)
-                          step-size (:donation-step-size technology)
-                          
-                          make-donation #(hash-map :abs-day (inc (:abs-calculation-day plot)) 
-                                                   :amount %)
-                          
-                          donations-+ (for [i (range) :let [delta (* i step-size)]] 
-                                        [(make-donation (max min-donation (- opt-donation delta))) 
-                                         (make-donation (min (+ opt-donation delta) max-donation))])
-                          
-                          calc-qus (|-> (fn [single-donation]
-                                          sm-x-days irrigation-days (abs-pre-calculation-day plot) rel-dc-day
-                                          soil-moistures plot true irrigation-mode [single-donation] weathers out)
-                                        (--< :qu-avg-current :qu-avg-target))
-                          
-                          ;condition (fn [[qu-current qu-target]] (> qu-current (/ (+ qu-eff qu-target) 2)))
-                          condition (fn [[qu-current qu-target]] (> qu-current (/ (+ 1 qu-target) 2)))
-                          
-                          qus-opt (calc-qus (make-donation opt-donation))
-                          
-                          [select-branch exit-condition] (if (condition qus-opt) 
-                                                           [first <] ;opt-- branch: current < target 
-                                                           [second >]) ;opt++ branch: current > target
-                                                    
-                          [final-donation [final-qu-current final-qu-target]] 
-                          (->> donations-+
-                            (map (|-> select-branch #(vector % (calc-qus %))) ,,,)
-                            (drop-while (|-> second 
-                                             #(apply (complement exit-condition) %)) 
-                                        ,,,)
-                            first)]
-                      {:donation final-donation
-                       :message (if (and (= final-donation max-donation) (< final-qu-current qu-eff))
-                                  "S.K. erh."
-                                  "Gabe opt.")}))
-                  ;without irrigation we're above target curve, thus everything is fine
-                  {:donation 0
-                   :message "BF opt."})]
-            {:donation donation
-             :message recommendation-text*}))]
-    {:recommendation-text recommendation-text
-     :donation donation}))
-
-
-
-
-#_(defn sm-x-days [x-days abs-current-day rel-dc-day soil-moistures plot sm-prognosis?  
-                   irrigation-mode donations weathers out]
-  (loop [days x-days 
-         qu-sum-deficits 0 
-         qu-sum-targets 0 
-         soil-moistures soil-moistures 
-         groundwater-infiltration 0]
-    (cond 
-      (= days 0)
-      {:qu-avg-current (/ (- qu-sum-targets qu-sum-deficits) 
-                          x-days) 
-       :qu-avg-target (/ qu-sum-targets 
-                         x-days) 
-       :soil-moistures soil-moistures 
-       :groundwater-infiltration groundwater-infiltration}
-      
-      :else
-      (let [crop (:crop plot)
-            delta (- x-days days)
-            rel-dc-day* (+ rel-dc-day delta 1)
-            abs-current-day* (+ abs-current-day delta 1) 
-            prev-day-cover-degree (interpolated-value (:rel-dc-day-to-cover-degree crop) (dec rel-dc-day*))
-            qu-target (if (< prev-day-cover-degree 1/100) 
-                        0 
-                        (interpolated-value (:rel-dc-day-to-quotient-aet-pet crop) rel-dc-day*))
-            cover-degree (interpolated-value (:rel-dc-day-to-cover-degree crop) rel-dc-day*)
-            rounded-extraction-depth-cm (->> (if (<= cover-degree 1/1000) 
-                                               0 
-                                               (interpolated-value (:rel-dc-day-to-extraction-depth crop) rel-dc-day*))
-                                          (+ 1 ,,,)
-                                          (h/swap / 10 ,,,)
-                                          nt/round
-                                          (* 10 ,,,))
-            weather (weather-at weathers abs-current-day*)
-            donation (donations-at donations abs-current-day*)
-            transpiration-factor (interpolated-value (:rel-dc-day-to-transpiration-factor crop) rel-dc-day*)
-            
-            {:keys [pet 
-                    effective-precipitation 
-                    effective-irrigation 
-                    effective-irrigation-uncovered]} (interception (:precipitation weather) 
-                                                                   (:evaporation weather) 
-                                                                   donation transpiration-factor irrigation-mode)
-            
-            pet* (if (< cover-degree 1/1000) 
-                   0 
-                   (* pet transpiration-factor))
-            daily-precipitation-and-irrigation (+ 
-                                                 (* (+ effective-precipitation effective-irrigation) cover-degree) 
-                                                 (* (+ (:precipitation weather) effective-irrigation-uncovered) (- 1 cover-degree)))
-
-            {aet :aet
-             soil-moistures* :soil-moistures
-             groundwater-infiltration :groundwater-infiltration} (sm-1-day rounded-extraction-depth-cm cover-degree pet* 
-                                                                           abs-current-day* (:fc plot) (:pwp plot)
-                                                                           (lambda (:lambda-without-correction plot) abs-current-day*) soil-moistures
-                                                                           sm-prognosis? (:evaporation weather) (resulting-damage-compaction-depth-cm plot) 
-                                                                           (:groundwaterlevel plot) daily-precipitation-and-irrigation)
-                        
-            aet7pet (cond 
-                      (< cover-degree 1/1000) 0
-                      (> pet* 1/100) (/ aet pet*)
-                      :else 1)
-
-            _ (append-out out conj (map str [abs-current-day* 
-                                             (:precipitation weather)
-                                             (- (:evaporation weather))
-                                             donation
-                                             pet*
-                                             aet
-                                             aet7pet
-                                             qu-target
-                                             groundwater-infiltration
-                                             (nth soil-moistures* 0)
-                                             (nth soil-moistures* 1)
-                                             (nth soil-moistures* 2)
-                                             (nth soil-moistures* 3)
-                                             (nth soil-moistures* 4)
-                                             (ic/sum (subvec (vec soil-moistures*) 0 2))
-                                             (nth soil-moistures* 2)
-                                             rel-dc-day*
-                                             0]))]
-        (recur (dec days) 
-               (if (< aet7pet qu-target) 
-                 (+ qu-sum-deficits (- qu-target aet7pet)) 
-                 qu-sum-deficits)
-               (+ qu-sum-targets qu-target)
-               soil-moistures* 
-               groundwater-infiltration)))))
-
-#_(defn dc-assertion-at-abs-day 
-  "get the dc assertion map for the given crop at the given abs-day"  
-  [dc-assertions for-crop abs-day]
-  (let [;sort for dc and get only the onces for given crop
-        ordered-asserts-for-crop (->> dc-assertions
-                                   (filter #(= for-crop (:crop %)) ,,,)
-                                   (map (fn [a] [(:abs-assert-dc-day a) a]) ,,,)
-                                   (into (ordered-map) ,,,))
-        
-        ;try to get a list of all asserts after min-dc
-        >=abs-dc-day-asserts (rsubseq ordered-asserts-for-crop <= abs-day)]
-    (if (seq >=abs-dc-day-asserts)
-      (first >=abs-dc-day-asserts) ;take first equal or before abs-day
-      (last ordered-asserts-for-crop)))) ;if none, take closest one after abs-day (at least one should be there)
-
-
-
-#_(defn calc-soil-moisture-prognosis [plot prognosis-days inputs current-soil-moistures]
-  (let [dc-to-rel-dc-days (-> current-input :crop :dc-to-rel-dc-days)
-        
-        current-input (first inputs)
-        
-        abs-current-day (:abs-day current-input)
-             
-        ;get the current valid dc assertion for abs-current-day
-        {:keys [crop assert-dc abs-assert-dc-day] :as dc-assertion} 
-        (dc-assertion-at-abs-day (:dc-assertions plot) (:crop current-input) abs-current-day)
-        
-        ;get the dc data about the dc which has been reached at the prognosis time
-        ;this can be in the past or only be slightly in the future
-        ;depending on the dc milestones
-        {reached-dc :reached-dc
-         abs-reached-dc-day :abs-reached-dc-day} (reached-dc-data dc-to-rel-dc-days 
-                                                                  dc-assertion
-                                                                  (+ prognosis-days abs-current-day))  
-        
-        ;and get also the relative reached dc day, we need to calculate the correct current 
-        ;rel-dc-day to use in other curves with possbile different milestones
-        rel-reached-dc-day (-> dc-to-rel-dc-days
-                             (interpolated-value ,,, reached-dc)
-                             Math/round)
-                
-        rel-dc-day (+ rel-reached-dc-day (- abs-current-day abs-reached-dc-day))
-                
-        inputs* (map #(assoc % :sm-prognosis? true) inputs)
-        
-        rds (reductions calc-soil-moisture {:qu-sum-deficits 0
-                                            :qu-sum-targets 0
-                                            :soil-moistures current-soil-moistures}
-                        inputs)]
-    rds))
-
-
-
-#_(defn run-1 [plot weathers irrigation-mode]
-  (append-out fout conj ["CLJ day"
-                        "CLJ precip"
-                        "CLJ evap"
-                        "CLJ irrWater"
-                        "CLJ pet"
-                        "CLJ aet"
-                        "CLJ aet/pet"
-                        "CLJ aet/pet soll"
-                        "CLJ infil 15dm"
-                        "CLJ mm 10cm"
-                        "CLJ mm 10-30cm"
-                        "CLJ mm 30-60cm"
-                        "CLJ mm 60-100cm"
-                        "CLJ mm 100-150cm"
-                        "CLJ mm 0-30cm"
-                        "CLJ mm 30-60cm"
-                        "CLJ rel DC day"
-                        "CLJ lambda"])
-  
-  (append-out out str (str (-> plot :number str (subs ,,, 0 3)) "-"
-                           (-> plot :number str (subs ,,, 3 4)) " "
-                           (-> plot :crop crop-id) " " 
-                           (-> plot :crop :symbol) "      "))
-  
-  (let? [;get initial soilmoisture
-        ;------------------------------
-        
-        initial-soil-moisture (:initial-soil-moisture plot)
-                
-        abs-initial-soil-moisture-day (:abs-day-of-initial-soil-moisture-measurement plot)
-        
-        ; reads at least all the irrigation water 
-        donations (read-irrigation-donations (:number plot) 
-                                             (:irrigation-area plot))
-        
-        fallow (db-read-crop 0 :cultivation-type 1 :usage 0)
-        
-        ;calculate when crop period starts, to determine length of fallow period
-        ;if there is no DC=1, then the return DC day will be from a later
-        ;(but the first available) stage, but in this case this doesn't matter
-        ;because we care for actually the first stage and not necessarily DC=1
-        abs-crop-start-day (-> plot 
-                             :crop 
-                             :dc-to-rel-dc-day
-                             (abs-search-dc-day ,,, (:known-dc plot) 
-                                                    (:known-abs-dc-day plot)
-                                                    1)
-                             (max ,,, abs-initial-soil-moisture-day))
-        
-        ;calculate soilmoisture after fallow period
-        ;-----------------------------------
-
-        ;but even more: first run everything with fallow
-        ;we run as far as possible with fallow but only until the day before the
-        ;calculation day
-        fallow-days (- (min (abs-pre-calculation-day plot) abs-crop-start-day)
-                       abs-initial-soil-moisture-day) 
-        
-        start-crop-soil-moistures (if (> fallow-days 0)
-                                   (:soil-moistures (sm-x-days fallow-days abs-initial-soil-moisture-day 0
-                                                              (:initial-soil-moisture plot) 
-                                                              (assoc plot :crop fallow) false
-                                                              irrigation-mode donations weathers fout))
-                                   (:initial-soil-moisture plot)) 
-                
-        :when (if (< (abs-pre-calculation-day plot) abs-crop-start-day)
-                (do 
-                  (println "Berest could just run fallow. No need for irrigation so far.")
-                  (println "Press return.")
-                  (read-line)
-                  false)
-                true)
-          
-        ;calculate soilmoisture in past crop period
-        ;---------------------------------------
-        plant-days (- (abs-pre-calculation-day plot) abs-crop-start-day)
-        
-        :when (if (<= plant-days 0)
-                (do 
-                  (println "No plant days to calculate. Exiting.")
-                  (println "Press return.")
-                  (read-line)
-                  false)
-                true) 
-        
-        rel-crop-start-dc-day (-> plot 
-                                :crop 
-                                :dc-to-rel-dc-day
-                                (rel-search-dc-day (:known-dc plot) 
-                                                   (:known-abs-dc-day plot)
-                                                   abs-crop-start-day)) 
-        
-        current-soil-moistures (-> (sm-x-days plant-days abs-crop-start-day rel-crop-start-dc-day
-                                             start-crop-soil-moistures plot false irrigation-mode donations
-                                             weathers fout)
-                                :soil-moistures)
-        
-        abs-current-soil-moisture-day (+ abs-crop-start-day plant-days)
-        
-        ;prognosis of soilmoisture in next 7 days
-        ;--------------------------------------------------
-
-        ;get the dc we would have reached in 7 days
-        ;this is taken as reference for the prognosis as the machinery on the plots
-        ;and the farmers themselfs can't use any better resolution
-        ;thus the resolution of berest (regarding dc states) is 7 days
-        {known-dc :reached-dc
-         known-dc-day :abs-reached-dc-day} (-> plot 
-                                          :crop 
-                                          :dc-to-rel-dc-day
-                                          (reached-dc-data (:known-dc plot) 
-                                                           (:known-abs-dc-day plot)
-                                                           (+ 7 (:abs-calculation-day plot))))  
-        
-        ;even though we just have a 7 day resolution regarding the dc states
-        ;we need to get the current exact relative dc day for some of the other
-        ;needed curves, as these could use different milestones than the dc2day curve
-        rel-milestone-dc-day (-> plot 
-                               :crop 
-                               :dc-to-rel-dc-day
-                               (interpolated-value ,,, known-dc)
-                               (+ ,,, 0.1)
-                               Math/round)
-        
-        rel-dc-day (+ rel-milestone-dc-day (- abs-current-soil-moisture-day known-dc-day))
-        
-        sms (create-soil-moistures max-soil-depth (layer-depths) current-soil-moistures
-                                   (:fc plot) (:pwp plot)) 
-               
-        current-dc-date (doy-to-date known-dc) 
-        _ (append-out out str (str known-dc "/" 
-                                   (>=2digits (ctc/day current-dc-date)) "." 
-                                   (>=2digits (ctc/month current-dc-date)) ".   "
-                                   (:pNFK_0-30cm sms) "  " (:pNFK_30-60cm sms) "    ")) 
-        
-        ;calculate the soil moisture we'd have in 7 days given a
-        ;5 day weather forecast
-        {qu-avg-current :qu-avg-current
-         qu-avg-target :qu-avg-target
-         predicted-7-day-soil-moistures :soil-moistures} 
-        (sm-x-days 7 abs-current-soil-moisture-day rel-dc-day
-                   current-soil-moistures plot true irrigation-mode donations
-                   weathers fout)
-        abs-7-day-soil-moisture-day (+ abs-current-soil-moisture-day 7)
-
-        sms2 (create-soil-moistures max-soil-depth (layer-depths) 
-                                    predicted-7-day-soil-moistures
-                                    (:fc plot) (:pwp plot)) 
-        
-        _ (append-out out str (str (:pNFK_0-30cm sms2) "  " (:pNFK_30-60cm sms2) "  ")) 
-        
-        ;calculate the irrigation recommendation
-        ;-----------------------------------------
-
-        ;SekTyp1 schSrec;
-        ;schSrec.empf_mm = 0;
-
-        ;if(schlag.beFlaeche > 0 && schlag.beFlaeche <= schlag.faFlaeche)
-        tech (technology abs-current-soil-moisture-day plot current-soil-moistures weathers) 
-        
-        [recommendation-text 
-         donation] (cond 
-                     
-                     (< qu-avg-current qu-avg-target) 
-                     (cond 
-                       
-                       (:is-soil-moistures-high? tech) 
-                       ["Bf-hoch" (:opt-donation tech)]
-                     
-                       (>= (:max-donation tech) (:min-donation tech))
-                       (height rel-dc-day current-soil-moistures plot qu-avg-target tech irrigation-mode weathers fout)
-                       
-                       :else 
-                       ["Tech.min" (:opt-donation tech)])
-                           
-                     (< qu-avg-target 1/10) 
-                     ["Entw/Zeitr" (:opt-donation tech)]
-                     
-                     :else 
-                     ["Bf-opt" (:opt-donation tech)]) 
-        
-        _ (append-out out str (str "X " donation " " (:max-donation tech) " " recommendation-text)) 
-        
-        ]
-        (print @out)
-        (spit "out.csv" (csv/write-csv @fout))))
