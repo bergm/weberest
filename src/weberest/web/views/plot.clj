@@ -654,13 +654,16 @@
                                   \newline "100;1"
                                   \newline "110;20")}
       :validations [[:integer :until-julian-day]]
-      :fields [{:name :plot-id :type :select 
+      :fields [{:name :h1 :type :heading :text "Schlag auswählen ..."}
+               {:name :plot-id :type :select 
                 :options (for [id (bc/available-plot-ids db)] [id id]) 
                 :label "Schlag"}
+               {:name :h1 :type :heading :text "Rechnen bis ..."}
                {:name :until-julian-day :type :select 
                 :options (for [d (range 1 366)] [d d])
                 :first-option 250
-                :label "Rechnen bis 'Tag im Jahr'"}
+                :label "lfd. Tag im Jahr"}
+               {:name :xxx :type :html :html [:div {:style "font-weight: bold"} "oder optional über Datum ..."]}
                {:name :until-day :type :select 
                 :options (for [d (range 1 32)] [d d])
                 :placeholder ""
@@ -669,10 +672,12 @@
                 :options (for [m (range 4 13)] [m m])
                 :placeholder ""
                 :label "Monat"}
+               {:name :h1 :type :heading :text "Klima wählen ..."}
                {:name :weather-year :type :select
                 :options (for [y (range 1993 1999)] [y y])
                 :label "Wetterdaten (Star2/Müncheberg) für Jahr"}
                #_{:name :weather-data :type :textarea :label "Wetterdaten"}
+               {:name :h1 :type :heading :text "Beregnungsgaben angeben ..."}
                {:name :irrigation-data :type :textarea :label "Beregnungswasser [mm]"}
                #_{:name :dc-state-data :type :textarea :label "Beobachtete DC-Stadien"}
                {:name :csv-delimiter :type :select
