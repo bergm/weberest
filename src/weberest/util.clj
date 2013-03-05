@@ -11,8 +11,8 @@
 (defn >=2digits [number]
   (if (< number 10) (str "0" number) (str number)))
 
-(defn date-to-doy [day month]
-  (.. (ctc/date-time 2010 month day) getDayOfYear))
+(defn date-to-doy [day month & [year]]
+  (.. (ctc/date-time (or year 2010) month day) getDayOfYear))
 
 (defn doy-to-date [doy]
   (ctc/plus (ctc/date-time 2010 1 1) (ctc/days (dec doy))))

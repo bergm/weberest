@@ -353,10 +353,10 @@
               d/db)
          :else [:div#error "Fehler: Konnte keine Verbindung zur Datenbank herstellen!"]
          
-         plot (bc/db-read-plot db id)
+         plot (bc/db-read-plot db id 2012)
          :else [:div#error "Fehler: Konnte Schlag mit Nummer: " id " nicht laden!"]
          
-         weathers bc/weather-map
+         weathers (get bc/weather-map 1993)
          
          irrigation-donations-map (bc/read-irrigation-donations db 
                                                                 (:plot/number plot) 
@@ -636,26 +636,31 @@
    (he/javascript-tag "weberest.web.views.client.setup_value_display_svg_listeners();")])
 
 (def default-weather-data
-     (->> bc/weather-map
+     (->> (get bc/weather-map 1993)
           (map (|-> second
                     (--< :doy :precipitation :evaporation)
                     (|* map str)) ,,,)
           (cons ["Tag im Jahr" "Niederschlag" "Verdunstung"] ,,,)
           (#(csv/write-csv % :delimiter ";") ,,,)))
 
-(def test-plot-form
+(defn test-plot-form [db]
      {:enctype "multipart/form-data"
       :values {:plot-id "0400"
-               :weather-data default-weather-data
+               ;:weather-data default-weather-data
                :irrigation-data (str "Tag im Jahr;Menge" 
                                      \newline "100;0"
-                                     \newline "110;0")}
+                                     \newline "110;0")
+              :dc-state-data (str "Tag im Jahr;DC-Code" 
+                                  \newline "100;1"
+                                  \newline "110;20")}
       :validations [[:integer :until-julian-day]]
-      :fields [{:name :plot-id :label "Plot Nr."}
+      :fields [{:name :plot-id :type :select 
+                :options (for [id (bc/available-plot-ids db)] [id id]) 
+                :label "Schlag"}
                {:name :until-julian-day :type :select 
                 :options (for [d (range 1 366)] [d d])
                 :first-option 250
-                :label "Tag im Jahr"}
+                :label "Rechnen bis 'Tag im Jahr'"}
                {:name :until-day :type :select 
                 :options (for [d (range 1 32)] [d d])
                 :placeholder ""
@@ -664,15 +669,19 @@
                 :options (for [m (range 4 13)] [m m])
                 :placeholder ""
                 :label "Monat"}
+               {:name :weather-year :type :select
+                :options (for [y (range 1993 1999)] [y y])
+                :label "Wetterdaten (Star2/Müncheberg) für Jahr"}
+               #_{:name :weather-data :type :textarea :label "Wetterdaten"}
+               {:name :irrigation-data :type :textarea :label "Beregnungswasser [mm]"}
+               #_{:name :dc-state-data :type :textarea :label "Beobachtete DC-Stadien"}
                {:name :csv-delimiter :type :select
                 :options [{:value ";" :label ";"}
                           {:value "\t" :label "Tabulator"}]
-                :label "Trennzeichen für Wetterdaten und Beregnungswasser"}
-               {:name :weather-data :type :textarea :label "Wetterdaten"}
-               {:name :irrigation-data :type :textarea :label "Beregnungswasser"}]})
+                :label "Trennzeichen für Textboxen mit CSV-Format Text"}]})
 
 (defn test-plot-layout [user-id farm-id]
-  (f/render-form (assoc test-plot-form
+  (f/render-form (assoc (test-plot-form (bd/current-db user-id))
                         :method :post
                         :action (str "/farms/" farm-id "/plots/test.csv"))))
 
@@ -703,12 +712,21 @@
        {:irrigation/abs-day (Integer/parseInt abs-day)
         :irrigation/amount (Float/parseFloat amount)}))
 
+(defn parse-dc-state-data [dc-state-data delim]
+  (for [[abs-day dc] (rest (csv/parse-csv dc-state-data 
+                                              :delimiter delim))]
+       {:abs-day (Integer/parseInt abs-day)
+        :dc (Integer/parseInt dc)}))
+
 ;right now user-id as used as name for the database the user uses
 ;this should be changed if web-app db is used and holds configuration data for users
 (defn calc-test-plot 
   [user-id farm-id {:keys [plot-id until-julian-day 
                            until-day until-month 
-                           weather-data irrigation-data]
+                           weather-year
+                           weather-data irrigation-data
+                           #_dc-state-data
+                           ]
                           [csv-delimiter] :csv-delimiter
                           :as test-data}]
   (let? [db (-?>> user-id
@@ -717,20 +735,36 @@
               d/db)
          :else [:div#error "Fehler: Konnte keine Verbindung zur Datenbank herstellen!"]
          
-         plot (bc/db-read-plot db plot-id)
+         plot (bc/db-read-plot db plot-id 2012)
          :else [:div#error "Fehler: Konnte Schlag mit Nummer: " plot-id " nicht laden!"]
         
-         weathers (if (cs/blank? weather-data)
-                      bc/weather-map
-                      (parse-weather-data weather-data csv-delimiter))
+         weather-year* (Integer/parseInt weather-year)
+         weathers (get bc/weather-map weather-year*) 
+         #_(if (cs/blank? weather-data)
+               bc/weather-map
+               (parse-weather-data weather-data csv-delimiter))
         
          irrigation-donations 
          (if (cs/blank? irrigation-data)
              (bc/read-irrigation-donations db (:plot/number plot) 
                                            (:plot/irrigation-area plot))
              (parse-irrigation-data irrigation-data csv-delimiter))
-                  
-         until-julian-day* (Integer/parseInt until-julian-day)
+          
+         #_dc-assertions 
+         #_(->> dc-state-data
+              (#(parse-dc-state-data % \;) ,,,)
+                                     (map (fn [{:keys [abs-day dc]}]
+                                            (bd/create-dc-assertion* weather-year* abs-day dc))
+                                          ,,,))
+          
+         plot* (update-in plot [])
+          
+         until-julian-day* (if (not-any? empty? [until-day until-month])
+                               (bu/date-to-doy (Integer/parseInt until-day)
+                                               (Integer/parseInt until-month)
+                                               weather-year*)
+                               (Integer/parseInt until-julian-day))
+         
          inputs (bc/create-input-seq plot weathers irrigation-donations 
                                      (+ until-julian-day* 7) :sprinkle-losses)
          inputs-7 (drop-last 7 inputs)

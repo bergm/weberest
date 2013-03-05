@@ -341,21 +341,27 @@ fakt:=1 + 0.77 * SIN(0.01571 * (t - 166));"}
   )
 
 (def climate-data 
-     (-> "private/db/klima-potsdam-2006.csv"
+     (-> "private/climate-data-muencheberg-1993-to-1998.csv"
          cjio/resource 
          slurp
-         csv/parse-csv))
+         (csv/parse-csv :delimiter \;)))
 
 (def weather-map
-  (into (sorted-map) (map (fn [[day month year tavg precip globrad]]
-                            (let [doy (bu/date-to-doy (Integer/parseInt day) 
-                                                      (Integer/parseInt month))]
-                              [doy {:doy doy 
-                                    :evaporation (potential-evaporation-turc-wendling 
-                                                   (Float/parseFloat globrad) (Float/parseFloat tavg))
-                                    :precipitation (Float/parseFloat precip)
-                                    :prognosis? false}]))
-                          (rest climate-data))))
+  (reduce (fn [sm [day month year tavg precip globrad]]
+            (let [y (Integer/parseInt year)
+                  doy (bu/date-to-doy (Integer/parseInt day) 
+                                      (Integer/parseInt month)
+                                      y)
+                  sm* (if (find sm y) 
+                          sm
+                          (assoc sm y (sorted-map)))]
+                 (assoc-in sm* [y doy] 
+                           {:doy doy 
+                            :evaporation (potential-evaporation-turc-wendling 
+                                          (Float/parseFloat globrad) (Float/parseFloat tavg))
+                            :precipitation (Float/parseFloat precip)
+                            :prognosis? false})))
+          (sorted-map) (rest climate-data)))
 
 (defn longterm-evap-precip [doy]
   (let [longterm-average-evaporation-values 
@@ -491,16 +497,24 @@ fc, pwp [mm/cm] -> [mm/cm]"
                       (map copy value?s)
                       (copy value?s))]))))
 
-(defn db-read-plot [db plot-no]
+(defn available-plot-ids 
+  "get all plot ids available in the given 'db'"
+  [db]
+  (map first (d/q '[:find ?plot-no :in $ :where [? :plot/number ?plot-no]] db)))
+
+(defn db-read-plot 
+  "read a plot 'plot-no' completely db-value 'dB' with associated data from year 'year'"
+  [db plot-no year]
   (let? []
-    (let? [plot-id (ffirst (d/q '[:find ?plot 
-                                  :in $ ?plot-no 
-                                  :where
-                                  [?plot :plot/number ?plot-no]]
-                                db plot-no))
-           :else nil
-           
-           plot (bd/get-entity db plot-id)
+      (let? [plot-e-id (ffirst (d/q '[:find ?plot 
+                                      :in $ ?plot-no ?year 
+                                      :where
+                                      [?plot :plot/number ?plot-no]
+                                      [? :assertion/in-year ?year]]
+                                     db plot-no year))
+            :else nil
+                       
+            plot (bd/get-entity db plot-e-id)
            
            ; abbreviation
            cmfe 
@@ -1160,7 +1174,7 @@ is always fallow unless another crop follows with a dc > 1 (see a)"
                                                       (dec rel-dc-day))
             
             cover-degree (interpolated-value (:crop/rel-dc-day-to-cover-degrees crop) rel-dc-day)] 
-                
+        
         {:abs-day abs-day
          :rel-dc-day rel-dc-day
          :crop crop
@@ -1240,9 +1254,7 @@ all intermediate steps, unless red-fn is defined to be reduce"
     ;always create map, even if we just used reduce as red-fn
     (#(if (map? %) [%] %) ,,,) 
     ;calculate averages of result(s)
-    (map-indexed (fn [i v] 
-                     (average-prognosis-result (inc i) v)) 
-                 ,,,)))
+    (map-indexed (fn [i v] (average-prognosis-result (inc i) v)) ,,,)))
 
 (defn calc-soil-moisture-prognosis
   "calculate the soil-moisture prognosis in prognosis-days using inputs and the given soil-moisture"
@@ -1442,7 +1454,7 @@ the technological restrictions"
                      "CLJ aet"
                      "CLJ aet/pet"
                      "CLJ aet/pet soll"
-                     "CLJ infil 15dm"
+                     "CLJ infil 200cm"
                      "CLJ mm 10cm"
                      "CLJ mm 10-30cm"
                      "CLJ mm 30-60cm"
@@ -1559,7 +1571,7 @@ the technological restrictions"
              (str bd/datomic-base-uri ,,,)
              d/connect
              d/db)
-        plot (db-read-plot db "0400")
+        plot (db-read-plot db "0400" 2012)
         weather weather-map
         irrigation-donations-map (read-irrigation-donations db 
                                                             (:plot/number plot) 

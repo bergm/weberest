@@ -186,30 +186,16 @@
                     :technology/max-donation 30
                     :technology/opt-donation 20
                     :technology/donation-step-size 5}
-        
-        dc-assertion-1 {:db/id (bd/new-entity-id)
-                        :assertion/in-year 2012
-                        :assertion/at-abs-day (bu/date-to-doy 18 4)
-                        :assertion/assert-dc 1
-                        :assertion/abs-assert-dc-day (bu/date-to-doy 18 4)}
-        
-        dc-assertion-2 {:db/id (bd/new-entity-id)
-                        :assertion/in-year 2012
-                        :assertion/at-abs-day (bu/date-to-doy 28 5)
-                        :assertion/assert-dc 10
-                        :assertion/abs-assert-dc-day (bu/date-to-doy 28 5)}
-        
+
+        dc-assertion-1 (bd/create-dc-assertion 2012 [18 4] 1)
+        dc-assertion-2 (bd/create-dc-assertion 2012 [28 5] 10)
+                
         instance-703 {:db/id (bd/new-entity-id)
                       :crop-instance/template (bd/unique-query-for-db-id :crop/id "0703/1/0") 
                       :crop-instance/name "Kartoffel - 703/1/0"
                       :crop-instance/dc-assertions (bd/get-entity-ids [dc-assertion-1 dc-assertion-2])}
         
-        dc-assertion-3 {:db/id (bd/new-entity-id)
-                        :assertion/in-year 2012
-                        :assertion/at-abs-day (bu/date-to-doy 28 8)
-                        :assertion/assert-dc 20
-                        :assertion/abs-assert-dc-day (bu/date-to-doy 28 8)}
-        
+        dc-assertion-3 (bd/create-dc-assertion 2012 [28 8] 20)
         instance-1030 {:db/id (bd/new-entity-id)
                        :crop-instance/template (bd/unique-query-for-db-id :crop/id "1030/1/0") 
                        :crop-instance/name "Mais - 1030/1/0"
