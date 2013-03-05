@@ -761,8 +761,8 @@
                                      (map (fn [{:keys [abs-day dc]}]
                                             (bd/create-dc-assertion* weather-year* abs-day dc))
                                           ,,,))
+         ;plot* (update-in plot [])
           
-         plot* (update-in plot [])
           
          until-julian-day* (if (not-any? empty? [until-day until-month])
                                (bu/date-to-doy (Integer/parseInt until-day)
