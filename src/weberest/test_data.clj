@@ -350,29 +350,50 @@
         sms (bd/create-entities {:soil/upper-boundary-depth [30 60 90 150] 
                              		 :soil/soil-moisture [80. 90. 100. 100.]})
         
-        yearly-values {1993 {:technology {:db/id (bd/new-entity-id)
-                                          :technology/cycle-days 1
-                                          :technology/min-donation 5
-                                          :technology/max-donation 30
-                                          :technology/opt-donation 20
-                                          :technology/donation-step-size 5}
-                             :dc-assertions (bd/create-dc-assertions 1993
-                                                                     [[[21 5] 1]
-                                                                      [[1 6] 11]
-                                                                      [[6 10] 49]])
-                             :irrigation-donations (bd/create-irrigation-donations 1993
-                                                                                   [[[13 5] 6]
-                                                                                    [[18 5] 6]
-                                                                                    [[21 5] 6]
-                                                                                    [[25 5] 2]
-                                                                                    [[26 8] 15]
-                                                                                    [[27 8] 15]])
-                             :crop-instances [{:db/id (bd/new-entity-id)
-                                               :crop-instance/in-year 1993
-                                               :crop-instance/template (bd/unique-query-for-db-id :crop/id "0801/1/0") 
-                                               :crop-instance/name "Zuckerrübe - 801/1/0"
-                                               :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
-                                               :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]}}
+        _ (let [technology {:db/id (bd/new-entity-id)
+                            :technology/cycle-days 1
+                            :technology/min-donation 5
+                            :technology/max-donation 30
+                            :technology/opt-donation 20
+                            :technology/donation-step-size 5}
+
+                dc-assertions (bd/create-dc-assertions 1993
+                                                       [[[21 5] 1]
+                                                        [[1 6] 11]
+                                                        [[6 10] 49]])
+                irrigation-donations (bd/create-irrigation-donations 1993
+                                                                     [[[13 5] 6]
+                                                                      [[18 5] 6]
+                                                                      [[21 5] 6]
+                                                                      [[25 5] 2]
+                                                                      [[26 8] 15]
+                                                                      [[27 8] 15]])
+                crop-instances [{:db/id (bd/new-entity-id)
+                                 :crop-instance/in-year 1993
+                                 :crop-instance/template (bd/unique-query-for-db-id :crop/id "0801/1/0") 
+                                 :crop-instance/name "Zuckerrübe - 801/1/0"
+                                 :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions-1993)
+                                 :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations-1993)}]
+                initial-sms (bd/create-entities {:soil/upper-boundary-depth [30 60 90 150] 
+                                                 :soil/soil-moisture [80. 90. 100. 100.]})
+                plot* {:db/id (bd/new-entity-id)
+                       :plot/year 1993
+                       :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 31 3 1993)
+                       :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
+                       :plot/initial-sm-unit :soil-moisture-unit/pFK 
+                       :plot/technology (bd/get-entity-id technology)
+                       :plot/crop-instances (bd/get-entity-ids crop-instances)}
+                
+                plot {:db/id plot-e-id
+                      :plot/yearly-values (bd/get-entity-id plot*)}]
+            (d/transact datomic-connection (flatten [technology 
+                                                     dc-assertions 
+                                                     irrigation-donations 
+                                                     crop-instances 
+                                                     initial-sms 
+                                                     plot* 
+                                                     plot])))
+        
         
         
         technology {:db/id (bd/new-entity-id)
