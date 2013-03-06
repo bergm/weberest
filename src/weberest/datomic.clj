@@ -62,13 +62,13 @@
 (defn unique-query-for-db-id [db relation value]
   (first (query-for-db-id db relation value)))
 
+
 (defn create-dc-assertion* 
   "Create a dc assertion for given year 'in-year' to define that at abs-dc-day
   the dc-state was 'dc'. Optionally a at-abs-day can be given when the 
   dc state had been told the system, else abs-dc-day will be assumed."
   [in-year abs-dc-day dc & [at-abs-day]]
   {:db/id (new-entity-id)
-   :assertion/in-year in-year
    :assertion/at-abs-day (or at-abs-day abs-dc-day)
    :assertion/assert-dc dc
    :assertion/abs-assert-dc-day abs-dc-day})
@@ -83,4 +83,34 @@
                        (bu/date-to-doy at-day at-month in-year)
                        abs-dc-day)]
        (create-dc-assertion* in-year abs-dc-day dc at-abs-day)))
+
+(defn create-dc-assertions 
+  "create multiple assertions at one"
+  [in-year assertions]
+  (map #(apply create-dc-assertion in-year %) assertions))
+
+  
+(defn create-irrigation-donation*
+	"Create datomic map for an irrigation donation given an start-abs-day and optionally
+  an end-abs-day (else this will be the same as start-abs-day) and the irrigation-donation in [mm]"
+	[start-abs-day donation-mm & [end-abs-day]]
+  {:db/id (bd/new-entity-id)
+   :irrigation/abs-start-day start-abs-day
+   :irrigation/abs-end-day (or end-abs-day start-abs-day)
+   :irrigation/area area
+   :irrigation/amount amount})  
+
+(defn create-irrigation-donation
+  "create datomic map for an irrigation donation"
+  [in-year [start-day start-month] donation-mm & [[end-day end-month :as end-date]]]
+  (let [start-abs-day (bu/date-to-doy from-day from-month in-year)
+        end-abs-day (if (not-any? nil? end-date)
+                       (bu/date-to-doy end-day endo-month in-year)
+                       start-abs-day)]
+       (create-irrigation-donation* start-abs-day donation-mm end-abs-day)))
+  
+(defn create-irrigation-donations
+  "Create multiple irrigation donation datomic maps at once"
+  [in-year donations]
+  (map #(apply create-irrigation-donation in-year %) donations))
   

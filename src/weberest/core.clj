@@ -515,29 +515,30 @@ fc, pwp [mm/cm] -> [mm/cm]"
             :else nil
                        
             plot (bd/get-entity db plot-e-id)
-           
-           ; abbreviation
-           cmfe 
-           #(bd/create-map-from-entities %1 %2 %3)
-           
-           fcs-cm (->> (:plot/field-capacities plot)
-                    (cmfe :soil/upper-boundary-depth :soil/field-capacity ,,,)
+                      
+           	fcs-cm (->> (:plot/field-capacities plot)
+                    (bd/create-map-from-entities :soil/upper-boundary-depth 
+                                                 :soil/field-capacity 
+                                                 ,,,)
                     user-input-fc-or-pwp-to-cm-layers)
            fcs (->> fcs-cm
                  (aggregate-layers + *layer-sizes* ,,,))
            
            pwps-cm (->> (:plot/permanent-wilting-points plot)
-                     (cmfe :soil/upper-boundary-depth :soil/permanent-wilting-point ,,,)
+                     (bd/create-map-from-entities :soil/upper-boundary-depth 
+                                                  :soil/permanent-wilting-point 
+                                                  ,,,)
                      user-input-fc-or-pwp-to-cm-layers)
            pwps (->> pwps-cm
                   (aggregate-layers + *layer-sizes* ,,,))
            
            sms (->> (:plot/initial-soil-moistures plot) 
-                 (cmfe :soil/upper-boundary-depth :soil/soil-moisture ,,,)
-                 (user-input-soil-moisture-to-cm-layers 
-                   fcs-cm pwps-cm (->> (:plot/initial-sm-unit plot)
-                                    remove-namespace-from-keyword)
-                   )
+                 (bd/create-map-from-entities :soil/upper-boundary-depth 
+                                              :soil/soil-moisture 
+                                              ,,,)
+                 (user-input-soil-moisture-to-cm-layers
+                  	fcs-cm pwps-cm (->> (:plot/initial-sm-unit plot)
+                     			               remove-namespace-from-keyword))
                  (aggregate-layers + *layer-sizes* ,,,))
            
            lwc (lambda-without-correction 

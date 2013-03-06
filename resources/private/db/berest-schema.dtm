@@ -107,7 +107,7 @@
   :db.install/_attribute :db.part/db}
   
  ;; irrigation water donations
- 
+  	
   {:db/id #db/id[:db.part/db]
   :db/ident :irrigation/abs-start-day
   :db/valueType :db.type/long
@@ -142,14 +142,7 @@
 
   
  ;;dc-assertions
- 
- {:db/id #db/id[:db.part/db]
-  :db/ident :assertion/in-year
-  :db/valueType :db.type/long
-  :db/cardinality :db.cardinality/one
-  :db/doc "the year the assertion has been made in"
-  :db.install/_attribute :db.part/db} 
- 
+  
  {:db/id #db/id[:db.part/db]
   :db/ident :assertion/at-abs-day
   :db/valueType :db.type/long
@@ -284,6 +277,13 @@
  
  ;; crop-instance attributes
 
+	{:db/id #db/id[:db.part/db]
+  :db/ident :crop-instance/in-year
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "the year the crop-instance has been used on the plot"
+  :db.install/_attribute :db.part/db}
+
  {:db/id #db/id[:db.part/db]
   :db/ident :crop-instance/name
   :db/valueType :db.type/string
@@ -306,7 +306,14 @@
   :db/doc "a list of dc-assertions made for this crop-instance"
   :db.install/_attribute :db.part/db}
  
- 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :crop-instance/irrigation-donations
+  :db/valueType :db.type/ref
+  :db/isComponent true
+  :db/cardinality :db.cardinality/many
+  :db/doc "a list of irrigation-donations given for this crop-instance"
+  :db.install/_attribute :db.part/db}
+  
  ;; technology
   
  {:db/id #db/id[:db.part/db]
@@ -422,14 +429,7 @@
   :db/doc "The unit of the soil-moisture"
   :db.install/_attribute :db.part/db}
   
- {:db/id #db/id[:db.part/db]
-  :db/ident :plot/irrigation-water-donations
-  :db/valueType :db.type/ref
-  :db/isComponent true
-  :db/cardinality :db.cardinality/many
-  :db/doc "Irrigation water donations for this plot"
-  :db.install/_attribute :db.part/db}
- 
+  
  {:db/id #db/id[:db.part/db]
   :db/ident :plot/groundwaterlevel
   :db/valueType :db.type/long
@@ -454,7 +454,24 @@
   :db/doc "A plots damage compaction area"
   :db.install/_attribute :db.part/db}
  
-{:db/id #db/id[:db.part/db]
+ ;; potentially yearly changing parts of a plot
+ 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :plot/year
+  :db/valueType :db.type/long
+  :meta/unit :1
+  :db/cardinality :db.cardinality/one
+  :db/doc "The year the data are valid for"
+  :db.install/_attribute :db.part/db} 
+  
+ {:db/id #db/id[:db.part/db]
+  :db/ident :plot/yearly-values
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "The 'potentially' yearly changing parts/data of the plot"
+  :db.install/_attribute :db.part/db}
+  
+ {:db/id #db/id[:db.part/db]
   :db/ident :plot/abs-day-of-initial-soil-moisture-measurement
   :db/valueType :db.type/long
   :meta/unit :day
@@ -462,7 +479,7 @@
   :db/doc "The day absolute day the initial soil-moisture measurment has taken place."
   :db.install/_attribute :db.part/db}
 
-{:db/id #db/id[:db.part/db]
+ {:db/id #db/id[:db.part/db]
   :db/ident :plot/initial-soil-moistures
   :db/valueType :db.type/ref
   :db/isComponent true
@@ -470,14 +487,14 @@
   :db/doc "A plots initial soil-moisture as input by the user"
   :db.install/_attribute :db.part/db}
 
-{:db/id #db/id[:db.part/db]
+ {:db/id #db/id[:db.part/db]
   :db/ident :plot/initial-sm-unit
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
   :db/doc "The unit of the soil-moisture"
   :db.install/_attribute :db.part/db}
 
-{:db/id #db/id[:db.part/db]
+ {:db/id #db/id[:db.part/db]
   :db/ident :plot/technology
   :db/valueType :db.type/ref
   :db/isComponent true
@@ -498,50 +515,5 @@
  [:db/add #db/id[:db.part/user] :db/ident :soil-moisture-unit/pNFK]
  [:db/add #db/id[:db.part/user] :db/ident :soil-moisture-unit/volP]
  [:db/add #db/id[:db.part/user] :db/ident :soil-moisture-unit/mm]
- 
- 
- ;; neighborhood
- ;{:db/id #db/id[:db.part/db]
- ; :db/ident :neighborhood/name
- ; :db/valueType :db.type/string
- ; :db/cardinality :db.cardinality/one
-  ;:db/unique :db.unique/identity
-  ;:db/doc "A unique neighborhood name (upsertable)"
-;  :db.install/_attribute :db.part/db}
-
- ;{:db/id #db/id[:db.part/db]
- ; :db/ident :neighborhood/district
- ; :db/valueType :db.type/ref
- ; :db/cardinality :db.cardinality/one
- ; :db/doc "A neighborhood's district"
- ; :db.install/_attribute :db.part/db}
-
- ;; district
- ;{:db/id #db/id[:db.part/db]
- ; :db/ident :district/name
- ; :db/valueType :db.type/string
- ; :db/cardinality :db.cardinality/one
- ; :db/unique :db.unique/identity
- ; :db/doc "A unique district name (upsertable)"
- ; :db.install/_attribute :db.part/db}
-
- ;{:db/id #db/id[:db.part/db]
- ; :db/ident :district/region
- ; :db/valueType :db.type/ref
- ; :db/cardinality :db.cardinality/one
- ;; :db/doc "A district region enum value"
- ; :db.install/_attribute :db.part/db}
-
- ;; district/region enum values
- ;[:db/add #db/id[:db.part/user] :db/ident :region/n]
- ;[:db/add #db/id[:db.part/user] :db/ident :region/ne]
- ;[:db/add #db/id[:db.part/user] :db/ident :region/e]
- ;[:db/add #db/id[:db.part/user] :db/ident :region/se]
- ;[:db/add #db/id[:db.part/user] :db/ident :region/s]
- ;[:db/add #db/id[:db.part/user] :db/ident :region/sw]
- ;[:db/add #db/id[:db.part/user] :db/ident :region/w]
- ;[:db/add #db/id[:db.part/user] :db/ident :region/nw]
- 
- 
- 
+  
  ]
