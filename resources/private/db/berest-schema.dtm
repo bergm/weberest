@@ -277,13 +277,6 @@
  
  ;; crop-instance attributes
 
-	{:db/id #db/id[:db.part/db]
-  :db/ident :crop-instance/in-year
-  :db/valueType :db.type/long
-  :db/cardinality :db.cardinality/one
-  :db/doc "the year the crop-instance has been used on the plot"
-  :db.install/_attribute :db.part/db}
-
  {:db/id #db/id[:db.part/db]
   :db/ident :crop-instance/name
   :db/valueType :db.type/string

@@ -31,58 +31,58 @@
 
 (defroutes farm-routes
   (compojure/context 
-    "/farms" req
-    
-    (GET "/:farm-id" [farm-id]
-         (common/layout+js 
-          (if (= farm-id "new")
-              (farm/new-farm-layout (user-id req))
-              (farm/farm-layout (user-id req) farm-id))))
-    
-    ; upon creation of farm go to new farm or failure to input form again
-    (POST "/new" {new-farm-data :form-params}
-          (if-let [new-farm-id (farm/create-farm (user-id req) new-farm-data)]
-                  (rur/redirect (str "/farms/" new-farm-id))
-                  (rur/redirect "/farms/new"))))
-  
-  (GET "/farms" req
-       (common/layout+js (farm/farms-layout (user-id req)))))
-  
+   "/farms" req
+   
+   (GET "/" req	
+        (common/layout+js (farm/farms-layout (user-id req))))
+   
+   (GET "/:farm-id" [farm-id]
+        (common/layout+js 
+         (if (= farm-id "new")
+           (farm/new-farm-layout (user-id req))
+           (farm/farm-layout (user-id req) farm-id))))
+   
+   ; upon creation of farm go to new farm or failure to input form again
+   (POST "/new" {new-farm-data :form-params}
+         (if-let [new-farm-id (farm/create-farm (user-id req) new-farm-data)]
+           (rur/redirect (str "/farms/" new-farm-id))
+           (rur/redirect "/farms/new")))))
+
 ;;plots
 ;;----------------------------------------------------------------
 
 (defroutes plot-routes
   (compojure/context 
-    "/farms/:farm-id" [farm-id :as req]
+   "/farms/:farm-id" [farm-id :as req]
+   
+   (compojure/context 
+    "/plots" []
     
-    (compojure/context 
-      "/plots" []
-      
-      (GET "/new" []
-           (common/layout (plot/new-plot-layout (user-id req) farm-id)))
-      
-      (POST "/new" {new-plot-data :form-params}
-            (if-let [new-plot-id (plot/create-plot (user-id req) farm-id new-plot-data)]
-                    (rur/redirect (str "/farms/" farm-id "/plots/" new-plot-id))
-                    (rur/redirect (str "/farms/" farm-id "/plots/new"))))
-            
-      (GET "/test" []
-           (common/layout (plot/test-plot-layout (user-id req) farm-id)))
-      
-      (POST "/test.csv" {test-data :params}
-            (-> (plot/calc-test-plot (user-id req) farm-id test-data)
-                rur/response
-                (rur/content-type "text/csv")))
-      
-      (GET "/:plot-id" [plot-id until]
-           (common/layout+js 
-            (plot/plot-layout (user-id req) farm-id plot-id 
-                              (if until 
-                                  (Integer/parseInt until)
-                                  250)))))
-            
-    (GET "/plots" {:keys [farm-id]}
-         (common/layout (plot/plots-layout (user-id req) farm-id)))))
+    (GET "/" []
+         (common/layout (plot/plots-layout (user-id req) farm-id))))
+   
+   (GET "/new" []
+        (common/layout (plot/new-plot-layout (user-id req) farm-id)))
+   
+   (POST "/new" {new-plot-data :form-params}
+         (if-let [new-plot-id (plot/create-plot (user-id req) farm-id new-plot-data)]
+           (rur/redirect (str "/farms/" farm-id "/plots/" new-plot-id))
+           (rur/redirect (str "/farms/" farm-id "/plots/new"))))
+   
+   (GET "/test" []
+        (common/layout (plot/test-plot-layout (user-id req) farm-id)))
+   
+   (POST "/test.csv" {test-data :params}
+         (-> (plot/calc-test-plot (user-id req) farm-id test-data)
+             rur/response
+             (rur/content-type "text/csv")))
+   
+   (GET "/:plot-id" [plot-id until]
+        (common/layout+js 
+         (plot/plot-layout (user-id req) farm-id plot-id 
+                           (if until 
+                             (Integer/parseInt until)
+                             250))))))
 
 ;;climate
 ;;----------------------------------------------------------------
@@ -113,19 +113,22 @@
 (defroutes 
  crop-routes
  
-  (GET "/crops/:crop-id" [crop-id :as req]
-       (common/layout 
-        (if (= crop-id "new")
-            (crop/new-crop-layout (user-id req))
-            (crop/crop-layout (user-id req) crop-id))))
+  (compojure/context 
+   "/crops" []
   
-  (POST "/crops/new" {new-crop-data :form-params :as req}
-        (if-let [new-crop-id (crop/create-crop (user-id req) new-crop-data)]
-                (rur/redirect (str "/crops/" new-crop-id))
-                (rur/redirect "/crops/new")))
-  
-  (GET "/crops" req
-       (common/layout (crop/crops-layout (user-id req)))))
+   (GET "/" req
+        (common/layout (crop/crops-layout (user-id req))))
+   
+   (GET "/:crop-id" [crop-id :as req]
+        (common/layout 
+         (if (= crop-id "new")
+           (crop/new-crop-layout (user-id req))
+           (crop/crop-layout (user-id req) crop-id))))
+   
+   (POST "/new" {new-crop-data :form-params :as req}
+         (if-let [new-crop-id (crop/create-crop (user-id req) new-crop-data)]
+           (rur/redirect (str "/crops/" new-crop-id))
+           (rur/redirect "/crops/new")))))
 
 ;;technology
 ;;----------------------------------------------------------------
@@ -188,30 +191,30 @@
 
 (defroutes db-ops-routes
   (compojure/context 
-    "/users/admin/dbs" []
-    
-    (GET "/new" []
-         (common/layout (db/new-db-layout)))
-    
-    (POST "/new" {new-db-data :form-params}
-          (friend/authenticated
-            (if-let [new-db-id (db/create-db new-db-data)]
-              (rur/redirect (str "/dbs/" new-db-id))
-              (rur/redirect (str "/dbs/")))))
-    
-    (GET "/:db" [id]
-         (common/layout (db/db-layout id)))
-    
-    (DELETE "/:id" [id :as request]
-            (if (db/delete-db id)
-              (rur/redirect (str "/dbs"))
-              (db/delete-error request)))
-    
-    (PUT "/:id/test-data" [id]
-         (db/install-test-data id)))
-  
-  (GET "/uses/admin/dbs" []
-       (common/layout (db/dbs-layout))))
+   "/users/admin/dbs" []
+   
+   (GET "/" []	
+        (common/layout (db/dbs-layout)))
+   
+   (GET "/new" []
+        (common/layout (db/new-db-layout)))
+   
+   (POST "/new" {new-db-data :form-params}
+         (friend/authenticated
+          (if-let [new-db-id (db/create-db new-db-data)]
+            (rur/redirect (str "/dbs/" new-db-id))
+            (rur/redirect (str "/dbs/")))))
+   
+   (GET "/:db" [id]
+        (common/layout (db/db-layout id)))
+   
+   (DELETE "/:id" [id :as request]
+           (if (db/delete-db id)
+             (rur/redirect (str "/dbs"))
+             (db/delete-error request)))
+   
+   (PUT "/:id/test-data" [id]
+        (db/install-test-data id))))
 
 ;;start
 ;;----------------------------------------------------------------

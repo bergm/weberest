@@ -3,21 +3,39 @@
             [weberest.util :as bu]
             [clojure.string :as cstr]
             [clojure.pprint :as pp]
-            [clj-time.core :as ctc])
+            [clj-time.core :as ctc]
+            [clojure.java.io :as cjio])
   (:use [datomic.api :as d :only [q db]]
+        [weberest.helper :only [|* |->]]
         [clojure.core.incubator :only [-?> -?>>]]))
 
 #_(def datomic-base-uri "datomic:free://localhost:4334/")
 (def datomic-base-uri "datomic:free://humane-spaces.cloudapp.net:4334/")
-#_(def berest-datomic-uri (str datomic-base-uri "berest"))
-#_(defn connection [] (d/connect berest-datomic-uri)) 
-#_(def ^:dynamic *db* (db (connection)))
 
-(defn current-db [db-id]
-  (-?>> db-id
-        (str datomic-base-uri ,,,)
-        d/connect
+(defn datomic-connection [db-id & [uri]]
+  (->> db-id
+       (str (or uri datomic-base-uri) ,,,)
+       d/connect))
+
+(defn current-db [db-id & [uri]]
+  (-?>> (datomic-connection db-id (or uri datomic-base-uri))
         d/db))
+
+(defn apply-schema-to-db [datomic-connection]
+  (->> ["private/db/berest-meta-schema.dtm"
+        "private/db/berest-schema.dtm"]
+       (map (|-> cjio/resource slurp read-string) ,,,)
+       (map (|* d/transact datomic-connection) ,,,)))
+
+(defn create-db [db-id & [uri]]
+  (let [uri* (str (or uri datomic-base-uri) db-id)] 
+    (when (d/create-database uri*)
+      (apply-schema-to-db (d/connect uri*))
+      db-id)))
+
+(defn delete-db [db-id & [uri]]
+  (d/delete-database (str (or uri datomic-base-uri) db-id)))
+
 
 (defn new-entity-ids [] (repeatedly #(d/tempid :db.part/user)))
 (defn new-entity-id [] (first (new-entity-ids)))
@@ -94,18 +112,17 @@
 	"Create datomic map for an irrigation donation given an start-abs-day and optionally
   an end-abs-day (else this will be the same as start-abs-day) and the irrigation-donation in [mm]"
 	[start-abs-day donation-mm & [end-abs-day]]
-  {:db/id (bd/new-entity-id)
+  {:db/id (new-entity-id)
    :irrigation/abs-start-day start-abs-day
    :irrigation/abs-end-day (or end-abs-day start-abs-day)
-   :irrigation/area area
-   :irrigation/amount amount})  
+   :irrigation/amount donation-mm})  
 
 (defn create-irrigation-donation
   "create datomic map for an irrigation donation"
   [in-year [start-day start-month] donation-mm & [[end-day end-month :as end-date]]]
-  (let [start-abs-day (bu/date-to-doy from-day from-month in-year)
+  (let [start-abs-day (bu/date-to-doy start-day start-month in-year)
         end-abs-day (if (not-any? nil? end-date)
-                       (bu/date-to-doy end-day endo-month in-year)
+                       (bu/date-to-doy end-day end-month in-year)
                        start-abs-day)]
        (create-irrigation-donation* start-abs-day donation-mm end-abs-day)))
   
@@ -113,4 +130,6 @@
   "Create multiple irrigation donation datomic maps at once"
   [in-year donations]
   (map #(apply create-irrigation-donation in-year %) donations))
-  
+
+
+
