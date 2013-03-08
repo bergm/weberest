@@ -25,13 +25,14 @@
   (->> ["private/db/berest-meta-schema.dtm"
         "private/db/berest-schema.dtm"]
        (map (|-> cjio/resource slurp read-string) ,,,)
-       (map (|* d/transact datomic-connection) ,,,)))
+       (map (|* d/transact datomic-connection) ,,,)
+			 dorun))
 
 (defn create-db [db-id & [uri]]
   (let [uri* (str (or uri datomic-base-uri) db-id)] 
     (when (d/create-database uri*)
-      (apply-schema-to-db (d/connect uri*))
-      db-id)))
+			(apply-schema-to-db (d/connect uri*))
+			db-id)))
 
 (defn delete-db [db-id & [uri]]
   (d/delete-database (str (or uri datomic-base-uri) db-id)))
