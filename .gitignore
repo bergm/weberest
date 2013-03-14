@@ -10,3 +10,5 @@ pom.xml
 /.project
 /.classpath
 /.settings
+/out
+/src-cljs
