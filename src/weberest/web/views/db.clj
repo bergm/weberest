@@ -26,7 +26,7 @@
 (defn dbs-layout []
   [:div "all dbs"])
 
-(defn create-db {:keys [id]}
+(defn create-db [{:keys [id]}]
   (bd/create-db id))
 
 (defn delete-db [id]

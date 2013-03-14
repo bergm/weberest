@@ -1,7 +1,7 @@
 (defproject berest "1.0.0-SNAPSHOT"
   :min-lein-version "2.0.0"
   :description "FIXME: write description"
-  :dependencies [[org.clojure/clojure "1.5.0"]
+  :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/math.numeric-tower "0.0.1"]
                  [incanter/incanter-core "1.4.0"]
                  [com.datomic/datomic-free "0.8.3704"]
@@ -30,19 +30,36 @@
                  [domina "1.0.0"]
                  [org.clojure/google-closure-library-third-party "0.0-2029"]
                  [formative "0.3.2"]
+                 [webfui "0.2.1"]
+                 [ring-edn "0.1.0"]
                  ]
   :exclusions [org.mortbay.jetty/servlet-api]              
   :plugins [[lein-cljsbuild "0.3.0"]]
-  :cljsbuild {:builds [{; The path to the top-level ClojureScript source directory:
-                        ;:source-paths ["src"]
-                        :source-path "src"
+  :cljsbuild {:builds [#_{:id "main"
+                        ; The path to the top-level ClojureScript source directory:
+                        :source-paths ["src"]
+                        ;:source-path "src"
                         ; The standard ClojureScript compiler options:
                         ; (See the ClojureScript compiler documentation for details.)
                         :compiler {:output-to "resources/public/cljs/main.js"  ; default: main.js in current directory
                                    :output-dir "resources/public/cljs"
                                    :optimizations :whitespace
+                                   :pretty-print true}}
+                       #_{:id "calculator-ajax"
+                        :source-path "src-cljs/calculator_ajax"
+                        :compiler {:output-to "resources/public/js/calculator_ajax.js"
+                                   :optimizations :whitespace
+                                   :pretty-print true}}
+                       {:id "webfui-client"
+                        :source-paths ["src/weberest/web/clients/webfui"]
+                        ;:source-path "src/weberest/web/clients/webfui"
+                        :compiler {:output-to "resources/public/js/webfui_client.js"
+                                   :optimizations :whitespace
                                    :pretty-print true}}]}
-  :ring {:handler weberest.web.routes/berest-app}
+  :ring {;:handler weberest.web.routes/berest-app
+         :handler weberest.web.routes/berest-rest-api
+         :auto-refresh? true
+         }
   ;:main ^{:skip-aot true} weberest.web.server
   ;:main ^{:skip-aot true} weberest.core
   )

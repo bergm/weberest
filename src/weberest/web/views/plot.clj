@@ -826,3 +826,7 @@
       (hf/text-field "number" "")]
     (hf/submit-button "Schlag erstellen")))
 
+(defn rest-plot-ids [format user-id farm-id]
+  (condp = format
+        :edn ["zalf" "test1" "test2"]
+        :json ["zalf" "test1" "test2"]))

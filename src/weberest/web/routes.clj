@@ -6,6 +6,7 @@
             [compojure 
              [handler :as handler]
              [route :as route]]
+            [weberest.test-data :as btd]
             [weberest.web.views 
              [farm :as farm]
              [db :as db] 
@@ -17,6 +18,7 @@
              [login :as login]]
             [ring.util.response :as rur]
             [ring.middleware.content-type :as rmc]
+            [ring.middleware.edn :as redn]
             [cemerick.friend :as friend]
             [cemerick.friend  [workflows :as workflows]
                               [credentials :as creds]]))
@@ -75,7 +77,7 @@
    (POST "/test.csv" {test-data :params}
          (-> (plot/calc-test-plot (user-id req) farm-id test-data)
              rur/response
-             (rur/content-type "text/csv")))
+             (rur/content-type ,,, "text/csv")))
    
    (GET "/:plot-id" [plot-id until]
         (common/layout+js 
@@ -83,6 +85,43 @@
                            (if until 
                              (Integer/parseInt until)
                              250))))))
+
+(defroutes rest-plot-routes
+  (compojure/context 
+   "/rest/farms/:farm-id" [farm-id :as req]
+   
+   (compojure/context 
+    "/plots" []
+    
+    (GET "/" []
+         (-> (plot/rest-plot-ids :edn "admin" #_(user-id req) farm-id)
+             pr-str
+             rur/response
+             (#(do (println (str %)) %) ,,,)
+             (rur/content-type ,,, "application/edn")))
+   
+   #_(GET "/new" []
+        (common/layout (plot/new-plot-layout (user-id req) farm-id)))
+   
+   #_(POST "/new" {new-plot-data :form-params}
+         (if-let [new-plot-id (plot/create-plot (user-id req) farm-id new-plot-data)]
+           (rur/redirect (str "/farms/" farm-id "/plots/" new-plot-id))
+           (rur/redirect (str "/farms/" farm-id "/plots/new"))))
+   
+   #_(GET "/test" []
+        (common/layout (plot/test-plot-layout (user-id req) farm-id)))
+   
+   #_(POST "/test.csv" {test-data :params}
+         (-> (plot/calc-test-plot (user-id req) farm-id test-data)
+             rur/response
+             (rur/content-type "text/csv")))
+   
+   #_(GET "/:plot-id" [plot-id until]
+        (common/layout+js 
+         (plot/plot-layout (user-id req) farm-id plot-id 
+                           (if until 
+                             (Integer/parseInt until)
+                             250)))))))
 
 ;;climate
 ;;----------------------------------------------------------------
@@ -214,7 +253,14 @@
              (db/delete-error request)))
    
    (PUT "/:id/test-data" [id]
-        (db/install-test-data id))))
+        (btd/install-test-data id))))
+
+;;test
+;;----------------------------------------------------------------
+
+(defroutes test-routes
+  (GET "/webfui" []
+       (common/layout-webfui "webfui_client")))
 
 ;;start
 ;;----------------------------------------------------------------
@@ -224,11 +270,13 @@
        (common/layout [:h1 "WeBEREST"])))
 
 (defroutes user-routes
+  (route/resources "/")
+  rest-plot-routes
   start-routes
+  test-routes
   login-out-routes
   (friend/wrap-authorize farm-routes #{::user})
   (friend/wrap-authorize plot-routes #{::user})
-  (route/resources "/")
   (route/not-found "Page not found."))
 
 (defroutes admin-routes
@@ -236,11 +284,13 @@
   
   (route/not-found "404"))
 
-;;test
-;;----------------------------------------------------------------
+(defroutes rest-routes
+  (route/resources "/")
+  test-routes
+  rest-plot-routes
+  (route/not-found "Page not found."))
 
-#_(nc/defpage "/bla" []
-  (rur/redirect "http://www.web.de"))
+
 
 ;;app
 ;-----------------------------------------------------------------
@@ -272,10 +322,23 @@
         :login-uri "/login"
         :unauthorized-redirect-uri "/login"
         :default-landing-uri "/"})
+      redn/wrap-edn-params
       handler/site))
 
+(def berest-rest-api
+  (-> rest-routes
+      #_(friend/authenticate
+       ,,,
+       {:allow-anon? true
+        :unauthenticated-handler #(workflows/http-basic-deny mock-app-realm %)
+        :workflows [(workflows/http-basic
+                     :credential-fn (partial creds/bcrypt-credential-fn api-users)
+                     :realm mock-app-realm)]})
+      redn/wrap-edn-params
+      handler/api))
+
 #_(def berest-api
-  (-> api-routes
+  (-> rest-routes
       (friend/authenticate
        ,,,
        {:allow-anon? true
@@ -283,4 +346,5 @@
         :workflows [(workflows/http-basic
                      :credential-fn (partial creds/bcrypt-credential-fn api-users)
                      :realm mock-app-realm)]})
+      
       handler/api))
