@@ -5,7 +5,7 @@
                  [org.clojure/math.numeric-tower "0.0.1"]
                  [incanter/incanter-core "1.4.0"]
                  [com.datomic/datomic-free "0.8.3704"]
-                 [clj-time "0.4.2"]
+                 [clj-time "0.4.5"]
                  [egamble/let-else "1.0.4"]
                  [clojure-csv/clojure-csv "2.0.0-alpha1"]
                  #_[org.clojure/data.csv "0.1.2"]

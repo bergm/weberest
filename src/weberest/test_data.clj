@@ -297,6 +297,268 @@
                           rel-day-to-quotient
                           fallow]))))
 
+(defn add-zalf-1993 [datomic-connection plot-e-id]
+  (let [year 1993
+        technology {:db/id (bd/new-entity-id)
+                    :technology/cycle-days 1
+                    :technology/min-donation 5
+                    :technology/max-donation 30
+                    :technology/opt-donation 20
+                    :technology/donation-step-size 5}
+        
+        dc-assertions (bd/create-dc-assertions year
+                                               [[[21 5] 1]
+                                                [[1 6] 11]
+                                                [[6 10] 49]])
+        irrigation-donations (bd/create-irrigation-donations year
+                                                             [[[13 5] 6]
+                                                              [[18 5] 6]
+                                                              [[21 5] 6]
+                                                              [[25 5] 2]
+                                                              [[26 8] 15]
+                                                              [[27 8] 15]])
+        crop-instances [{:db/id (bd/new-entity-id)
+                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0801/1/0") 
+                         :crop-instance/name "Zuckerrübe - 801/1/0"
+                         :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
+                         :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
+        initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
+                                        [30 80.0, 60 90.0, 90 100.0, 150 100.0])
+        plot* {:db/id (bd/new-entity-id)
+               :plot/year year
+               :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 31 3 year)
+               :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
+               :plot/initial-sm-unit :soil-moisture-unit/pFK 
+               :plot/technology (bd/get-entity-id technology)
+               :plot/crop-instances (bd/get-entity-ids crop-instances)}
+        plot {:db/id plot-e-id
+              :plot/yearly-values (bd/get-entity-id plot*)}]
+    (d/transact datomic-connection (flatten [technology 
+                                             dc-assertions 
+                                             irrigation-donations 
+                                             crop-instances 
+                                             initial-sms 
+                                             plot* 
+                                             plot]))))
+
+(defn add-zalf-1994 [datomic-connection plot-e-id]
+  (let [year 1994
+        technology {:db/id (bd/new-entity-id)
+                    :technology/cycle-days 1
+                    :technology/min-donation 5
+                    :technology/max-donation 30
+                    :technology/opt-donation 20
+                    :technology/donation-step-size 5}
+        
+        dc-assertions (bd/create-dc-assertions year
+                                               [[[19 4] 31]
+                                                [[26 5] 45]
+                                                [[14 6] 65]
+                                                [[26 7] 92]])
+        irrigation-donations (bd/create-irrigation-donations year
+                                                             [[[16 5] 12]
+                                                              [[24 6] 10]
+                                                              [[28 6] 10]
+                                                              [[29 6] 11]
+                                                              [[1 7] 10]
+                                                              [[5 7] 11]])
+        crop-instances [{:db/id (bd/new-entity-id)
+                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0101/1/0") 
+                         :crop-instance/name "Winterweizen/EJ - 0101/1/0"
+                         :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
+                         :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
+        initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
+                                        [30 60.74, 60 57.04, 90 50.38])
+        plot* {:db/id (bd/new-entity-id)
+               :plot/year year
+               :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 8 3 year)
+               :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
+               :plot/initial-sm-unit :soil-moisture-unit/mm 
+               :plot/technology (bd/get-entity-id technology)
+               :plot/crop-instances (bd/get-entity-ids crop-instances)}
+        plot {:db/id plot-e-id
+              :plot/yearly-values (bd/get-entity-id plot*)}]
+    (d/transact datomic-connection (flatten [technology 
+                                             dc-assertions 
+                                             irrigation-donations 
+                                             crop-instances 
+                                             initial-sms 
+                                             plot* 
+                                             plot]))))
+
+(defn add-zalf-1995 [datomic-connection plot-e-id]
+  (let [year 1995
+        technology {:db/id (bd/new-entity-id)
+                    :technology/cycle-days 1
+                    :technology/min-donation 5
+                    :technology/max-donation 30
+                    :technology/opt-donation 20
+                    :technology/donation-step-size 5}
+        
+        dc-assertions (bd/create-dc-assertions year
+                                               [[[24 4] 31]
+                                                [[7 6] 61]
+                                                [[17 7] 92]])
+        irrigation-donations (bd/create-irrigation-donations year
+                                                             [[[30 6] 10]])
+        crop-instances [{:db/id (bd/new-entity-id)
+                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0120/1/0") 
+                         :crop-instance/name "Wintergerste/EJ - 0120/1/0"
+                         :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
+                         :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
+        initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
+                                        [30 42.94, 60 37.64, 90 43.91])
+        plot* {:db/id (bd/new-entity-id)
+               :plot/year year
+               :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 13 3 year)
+               :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
+               :plot/initial-sm-unit :soil-moisture-unit/mm 
+               :plot/technology (bd/get-entity-id technology)
+               :plot/crop-instances (bd/get-entity-ids crop-instances)}
+        plot {:db/id plot-e-id
+              :plot/yearly-values (bd/get-entity-id plot*)}]
+    (d/transact datomic-connection (flatten [technology 
+                                             dc-assertions 
+                                             irrigation-donations 
+                                             crop-instances 
+                                             initial-sms 
+                                             plot* 
+                                             plot]))))
+
+(defn add-zalf-1996 [datomic-connection plot-e-id]
+  (let [year 1996
+        technology {:db/id (bd/new-entity-id)
+                    :technology/cycle-days 1
+                    :technology/min-donation 5
+                    :technology/max-donation 30
+                    :technology/opt-donation 20
+                    :technology/donation-step-size 5}
+        
+        dc-assertions (bd/create-dc-assertions year
+                                               [[[10 4] 26]
+                                                [[6 5] 31]
+                                                [[30 5] 61]
+                                                [[31 8] 92]])
+        irrigation-donations (bd/create-irrigation-donations year
+                                                             [[[20 6] 10]
+                                                              [[25 6] 10]
+                                                              [[27 6] 10]])
+        crop-instances [{:db/id (bd/new-entity-id)
+                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0110/1/0") 
+                         :crop-instance/name "Winterroggen/EJ - 0110/1/0"
+                         :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
+                         :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
+        initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
+                                        [30 80.0, 60 90.0, 90 100.0, 150 100.0])
+        plot* {:db/id (bd/new-entity-id)
+               :plot/year year
+               :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 13 3 year)
+               :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
+               :plot/initial-sm-unit :soil-moisture-unit/pFK 
+               :plot/technology (bd/get-entity-id technology)
+               :plot/crop-instances (bd/get-entity-ids crop-instances)}
+        plot {:db/id plot-e-id
+              :plot/yearly-values (bd/get-entity-id plot*)}]
+    (d/transact datomic-connection (flatten [technology 
+                                             dc-assertions 
+                                             irrigation-donations 
+                                             crop-instances 
+                                             initial-sms 
+                                             plot* 
+                                             plot]))))
+
+(defn add-zalf-1997 [datomic-connection plot-e-id]
+  (let [year 1997
+        technology {:db/id (bd/new-entity-id)
+                    :technology/cycle-days 1
+                    :technology/min-donation 5
+                    :technology/max-donation 30
+                    :technology/opt-donation 20
+                    :technology/donation-step-size 5}
+        
+        dc-assertions (bd/create-dc-assertions year
+                                               [[[3 4] 1]
+                                                [[5 5] 10]
+                                                [[23 9] 49]])
+        irrigation-donations (bd/create-irrigation-donations year
+                                                             [[[20 6] 12.5]
+                                                              [[3 7] 20]
+                                                              [[10 7] 10]
+                                                              [[11 7] 10]
+                                                              [[17 7] 25]
+                                                              [[8 8] 25]
+                                                              [[12 8] 25]
+                                                              [[16 8] 30]
+                                                              [[19 8] 27.5]
+                                                              [[22 8] 40]
+                                                              [[28 8] 25]])
+        crop-instances [{:db/id (bd/new-entity-id)
+                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0801/1/0") 
+                         :crop-instance/name "Zuckerrübe - 801/1/0"
+                         :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
+                         :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
+        initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
+                                        [30 80.0, 60 90.0, 90 100.0, 150 100.0])
+        plot* {:db/id (bd/new-entity-id)
+               :plot/year year
+               :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 31 3 year)
+               :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
+               :plot/initial-sm-unit :soil-moisture-unit/pFK 
+               :plot/technology (bd/get-entity-id technology)
+               :plot/crop-instances (bd/get-entity-ids crop-instances)}
+        plot {:db/id plot-e-id
+              :plot/yearly-values (bd/get-entity-id plot*)}]
+    (d/transact datomic-connection (flatten [technology 
+                                             dc-assertions 
+                                             irrigation-donations 
+                                             crop-instances 
+                                             initial-sms 
+                                             plot* 
+                                             plot]))))
+
+(defn add-zalf-1998 [datomic-connection plot-e-id]
+  (let [year 1998
+        technology {:db/id (bd/new-entity-id)
+                    :technology/cycle-days 1
+                    :technology/min-donation 5
+                    :technology/max-donation 30
+                    :technology/opt-donation 20
+                    :technology/donation-step-size 5}
+        
+        dc-assertions (bd/create-dc-assertions year
+                                               [[[25 5] 45]
+                                                [[9 6] 65]
+                                                [[27 7] 92]])
+        irrigation-donations (bd/create-irrigation-donations year
+                                                             [[[19 5] 20]
+                                                              [[28 5] 22]
+                                                              [[4 6] 20]
+                                                              [[24 6] 20]
+                                                              [[3 7] 20]])
+        crop-instances [{:db/id (bd/new-entity-id)
+                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0101/1/0") 
+                         :crop-instance/name "Winterweizen/EJ - 0101/1/0"
+                         :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
+                         :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
+        initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
+                                        [30 80.0, 60 90.0, 90 100.0, 150 100.0])
+        plot* {:db/id (bd/new-entity-id)
+               :plot/year year
+               :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 31 3 year)
+               :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
+               :plot/initial-sm-unit :soil-moisture-unit/pFK 
+               :plot/technology (bd/get-entity-id technology)
+               :plot/crop-instances (bd/get-entity-ids crop-instances)}
+        plot {:db/id plot-e-id
+              :plot/yearly-values (bd/get-entity-id plot*)}]
+    (d/transact datomic-connection (flatten [technology 
+                                             dc-assertions 
+                                             irrigation-donations 
+                                             crop-instances 
+                                             initial-sms 
+                                             plot* 
+                                             plot]))))
+
 ;add plot zalf test plot
 (defn add-zalf-test-plot [datomic-connection] 
   (let [db (d/db datomic-connection)
@@ -328,272 +590,16 @@
         				
         plot-e-id (d/resolve-tempid db-after tempids (:db/id plot))
         
-				
-        _ (let [year 1993
-                technology {:db/id (bd/new-entity-id)
-                            :technology/cycle-days 1
-                            :technology/min-donation 5
-                            :technology/max-donation 30
-                            :technology/opt-donation 20
-                            :technology/donation-step-size 5}
-
-                dc-assertions (bd/create-dc-assertions year
-                                                       [[[21 5] 1]
-                                                        [[1 6] 11]
-                                                        [[6 10] 49]])
-                irrigation-donations (bd/create-irrigation-donations year
-                                                                     [[[13 5] 6]
-                                                                      [[18 5] 6]
-                                                                      [[21 5] 6]
-                                                                      [[25 5] 2]
-                                                                      [[26 8] 15]
-                                                                      [[27 8] 15]])
-                crop-instances [{:db/id (bd/new-entity-id)
-                                 :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0801/1/0") 
-                                 :crop-instance/name "Zuckerrübe - 801/1/0"
-                                 :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
-                                 :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
-                initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
-                                                [30 80.0, 60 90.0, 90 100.0, 150 100.0])
-                plot* {:db/id (bd/new-entity-id)
-                       :plot/year year
-                       :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 31 3 year)
-                       :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
-                       :plot/initial-sm-unit :soil-moisture-unit/pFK 
-                       :plot/technology (bd/get-entity-id technology)
-                       :plot/crop-instances (bd/get-entity-ids crop-instances)}
-                plot {:db/id plot-e-id
-                      :plot/yearly-values (bd/get-entity-id plot*)}]
-            (d/transact datomic-connection (flatten [technology 
-                                                     dc-assertions 
-                                                     irrigation-donations 
-                                                     crop-instances 
-                                                     initial-sms 
-                                                     plot* 
-                                                     plot])))
+        _ (--<* add-zalf-1993 add-zalf-1993 add-zalf-1993 add-zalf-1993 add-zalf-1993 add-zalf-1993 plot)
         
-        
-        _ (let [year 1994
-                technology {:db/id (bd/new-entity-id)
-                            :technology/cycle-days 1
-                            :technology/min-donation 5
-                            :technology/max-donation 30
-                            :technology/opt-donation 20
-                            :technology/donation-step-size 5}
-
-                dc-assertions (bd/create-dc-assertions year
-                                                       [[[19 4] 31]
-                                                        [[26 5] 45]
-                                                        [[14 6] 65]
-                                                        [[26 7] 92]])
-                irrigation-donations (bd/create-irrigation-donations year
-                                                                     [[[16 5] 12]
-                                                                      [[24 6] 10]
-                                                                      [[28 6] 10]
-                                                                      [[29 6] 11]
-                                                                      [[1 7] 10]
-                                                                      [[5 7] 11]])
-                crop-instances [{:db/id (bd/new-entity-id)
-                                 :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0101/1/0") 
-                                 :crop-instance/name "Winterweizen/EJ - 0101/1/0"
-                                 :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
-                                 :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
-                initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
-                                                [30 60.74, 60 57.04, 90 50.38])
-                plot* {:db/id (bd/new-entity-id)
-                       :plot/year year
-                       :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 8 3 year)
-                       :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
-                       :plot/initial-sm-unit :soil-moisture-unit/mm 
-                       :plot/technology (bd/get-entity-id technology)
-                       :plot/crop-instances (bd/get-entity-ids crop-instances)}
-                plot {:db/id plot-e-id
-                      :plot/yearly-values (bd/get-entity-id plot*)}]
-            (d/transact datomic-connection (flatten [technology 
-                                                     dc-assertions 
-                                                     irrigation-donations 
-                                                     crop-instances 
-                                                     initial-sms 
-                                                     plot* 
-                                                     plot])))
-        
-        
-        
-        _ (let [year 1995
-                technology {:db/id (bd/new-entity-id)
-                            :technology/cycle-days 1
-                            :technology/min-donation 5
-                            :technology/max-donation 30
-                            :technology/opt-donation 20
-                            :technology/donation-step-size 5}
-
-                dc-assertions (bd/create-dc-assertions year
-                                                       [[[24 4] 31]
-                                                        [[7 6] 61]
-                                                        [[17 7] 92]])
-                irrigation-donations (bd/create-irrigation-donations year
-                                                                     [[[30 6] 10]])
-                crop-instances [{:db/id (bd/new-entity-id)
-                                 :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0120/1/0") 
-                                 :crop-instance/name "Wintergerste/EJ - 0120/1/0"
-                                 :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
-                                 :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
-                initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
-                                                [30 42.94, 60 37.64, 90 43.91])
-                plot* {:db/id (bd/new-entity-id)
-                       :plot/year year
-                       :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 13 3 year)
-                       :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
-                       :plot/initial-sm-unit :soil-moisture-unit/mm 
-                       :plot/technology (bd/get-entity-id technology)
-                       :plot/crop-instances (bd/get-entity-ids crop-instances)}
-                plot {:db/id plot-e-id
-                      :plot/yearly-values (bd/get-entity-id plot*)}]
-            (d/transact datomic-connection (flatten [technology 
-                                                     dc-assertions 
-                                                     irrigation-donations 
-                                                     crop-instances 
-                                                     initial-sms 
-                                                     plot* 
-                                                     plot])))
-        
-          
-        
-        _ (let [year 1996
-                technology {:db/id (bd/new-entity-id)
-                            :technology/cycle-days 1
-                            :technology/min-donation 5
-                            :technology/max-donation 30
-                            :technology/opt-donation 20
-                            :technology/donation-step-size 5}
-
-                dc-assertions (bd/create-dc-assertions year
-                                                       [[[10 4] 26]
-                                                        [[6 5] 31]
-                                                        [[30 5] 61]
-                                                        [[31 8] 92]])
-                irrigation-donations (bd/create-irrigation-donations year
-                                                                     [[[20 6] 10]
-                                                                      [[25 6] 10]
-                                                                      [[27 6] 10]])
-                crop-instances [{:db/id (bd/new-entity-id)
-                                 :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0110/1/0") 
-                                 :crop-instance/name "Winterroggen/EJ - 0110/1/0"
-                                 :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
-                                 :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
-                initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
-                                                [30 80.0, 60 90.0, 90 100.0, 150 100.0])
-                plot* {:db/id (bd/new-entity-id)
-                       :plot/year year
-                       :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 13 3 year)
-                       :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
-                       :plot/initial-sm-unit :soil-moisture-unit/pFK 
-                       :plot/technology (bd/get-entity-id technology)
-                       :plot/crop-instances (bd/get-entity-ids crop-instances)}
-                plot {:db/id plot-e-id
-                      :plot/yearly-values (bd/get-entity-id plot*)}]
-            (d/transact datomic-connection (flatten [technology 
-                                                     dc-assertions 
-                                                     irrigation-donations 
-                                                     crop-instances 
-                                                     initial-sms 
-                                                     plot* 
-                                                     plot])))
-        
-        
-        
-        _ (let [year 1997
-                technology {:db/id (bd/new-entity-id)
-                            :technology/cycle-days 1
-                            :technology/min-donation 5
-                            :technology/max-donation 30
-                            :technology/opt-donation 20
-                            :technology/donation-step-size 5}
-
-                dc-assertions (bd/create-dc-assertions year
-                                                       [[[3 4] 1]
-                                                        [[5 5] 10]
-                                                        [[23 9] 49]])
-                irrigation-donations (bd/create-irrigation-donations year
-                                                                     [[[20 6] 12.5]
-                                                                      [[3 7] 20]
-                                                                      [[10 7] 10]
-                                                                      [[11 7] 10]
-                                                                      [[17 7] 25]
-                                                                      [[8 8] 25]
-                                                                      [[12 8] 25]
-                                                                      [[16 8] 30]
-                                                                      [[19 8] 27.5]
-                                                                      [[22 8] 40]
-                                                                      [[28 8] 25]])
-                crop-instances [{:db/id (bd/new-entity-id)
-                                 :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0801/1/0") 
-                                 :crop-instance/name "Zuckerrübe - 801/1/0"
-                                 :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
-                                 :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
-                initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
-                                                [30 80.0, 60 90.0, 90 100.0, 150 100.0])
-                plot* {:db/id (bd/new-entity-id)
-                       :plot/year year
-                       :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 31 3 year)
-                       :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
-                       :plot/initial-sm-unit :soil-moisture-unit/pFK 
-                       :plot/technology (bd/get-entity-id technology)
-                       :plot/crop-instances (bd/get-entity-ids crop-instances)}
-                plot {:db/id plot-e-id
-                      :plot/yearly-values (bd/get-entity-id plot*)}]
-            (d/transact datomic-connection (flatten [technology 
-                                                     dc-assertions 
-                                                     irrigation-donations 
-                                                     crop-instances 
-                                                     initial-sms 
-                                                     plot* 
-                                                     plot])))
-        
-        
-        
-        _ (let [year 1998
-                technology {:db/id (bd/new-entity-id)
-                            :technology/cycle-days 1
-                            :technology/min-donation 5
-                            :technology/max-donation 30
-                            :technology/opt-donation 20
-                            :technology/donation-step-size 5}
-
-                dc-assertions (bd/create-dc-assertions year
-                                                       [[[25 5] 45]
-                                                        [[9 6] 65]
-                                                        [[27 7] 92]])
-                irrigation-donations (bd/create-irrigation-donations year
-                                                                     [[[19 5] 20]
-                                                                      [[28 5] 22]
-                                                                      [[4 6] 20]
-                                                                      [[24 6] 20]
-                                                                      [[3 7] 20]])
-                crop-instances [{:db/id (bd/new-entity-id)
-                                 :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0101/1/0") 
-                                 :crop-instance/name "Winterweizen/EJ - 0101/1/0"
-                                 :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
-                                 :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
-                initial-sms (bd/create-entities :soil/upper-boundary-depth :soil/soil-moisture 
-                                                [30 80.0, 60 90.0, 90 100.0, 150 100.0])
-                plot* {:db/id (bd/new-entity-id)
-                       :plot/year year
-                       :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 31 3 year)
-                       :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
-                       :plot/initial-sm-unit :soil-moisture-unit/pFK 
-                       :plot/technology (bd/get-entity-id technology)
-                       :plot/crop-instances (bd/get-entity-ids crop-instances)}
-                plot {:db/id plot-e-id
-                      :plot/yearly-values (bd/get-entity-id plot*)}]
-            (d/transact datomic-connection (flatten [technology 
-                                                     dc-assertions 
-                                                     irrigation-donations 
-                                                     crop-instances 
-                                                     initial-sms 
-                                                     plot* 
-                                                     plot])))]
+				_ (add-zalf-1993 plot-e-id)
+        _ (add-zalf-1994 plot-e-id)
+        _ (add-zalf-1995 plot-e-id)
+        _ (add-zalf-1996 plot-e-id)
+        _ (add-zalf-1997 plot-e-id)
+        _ (add-zalf-1999 plot-e-id)]
     true))
+
 
 (defn install-test-data [datomic-connection]
 	(bh/juxt* add-sugarbeet

@@ -16,7 +16,7 @@
             [datomic.api :as d]
             #_[clojure.algo.generic.arithmetic :as caga]
             )
-  (:use [weberest.helper :only [|-> |<- --< juxt*] :as bh]
+  (:use [weberest.helper :only [|* |-> |<- --< juxt*] :as bh]
         [let-else :only [let?]]
         [clojure.core.incubator :only [-?>]]
         [clojure.algo.generic.functor :only [fmap]]
@@ -503,19 +503,21 @@ fc, pwp [mm/cm] -> [mm/cm]"
   (map first (d/q '[:find ?plot-no :in $ :where [? :plot/number ?plot-no]] db)))
 
 (defn db-read-plot 
-  "read a plot 'plot-no' completely db-value 'dB' with associated data from year 'year'"
-  [db plot-no year]
+  "read a plot with id 'plot-id' completely given the db-value 'db' with associated data from year 'year'"
+  [db plot-id year]
   (let? []
-      (let? [plot-e-id (ffirst (d/q '[:find ?plot 
-                                      :in $ ?plot-no ?year 
-                                      :where
-                                      [?plot :plot/number ?plot-no]
-                                      [? :assertion/in-year ?year]]
-                                     db plot-no year))
+      (let? [[plot-e-id yearly-values-e-id] 
+             (first (d/q '[:find ?plot-e-id ?yv-e-id
+                           :in $ ?plot-id ?year 
+                           :where
+                           [?plot-e-id :plot/number ?plot-id]
+                           [?plot-e-id :plot/yearly-values ?yv-e-id]
+                           [?yv-e-id :plot/year ?year]]
+                         db plot-id year))
             :else nil
                        
-            plot (bd/get-entity db plot-e-id)
-                      
+            [plot plot-yv] (map (|* bd/get-entity db) [plot-e-id yearly-values-e-id])
+                         
            	fcs-cm (->> (:plot/field-capacities plot)
                     (bd/create-map-from-entities :soil/upper-boundary-depth 
                                                  :soil/field-capacity 
@@ -532,12 +534,12 @@ fc, pwp [mm/cm] -> [mm/cm]"
            pwps (->> pwps-cm
                   (aggregate-layers + *layer-sizes* ,,,))
            
-           sms (->> (:plot/initial-soil-moistures plot) 
+           sms (->> (:plot/initial-soil-moistures plot-yv) 
                  (bd/create-map-from-entities :soil/upper-boundary-depth 
                                               :soil/soil-moisture 
                                               ,,,)
                  (user-input-soil-moisture-to-cm-layers
-                  	fcs-cm pwps-cm (->> (:plot/initial-sm-unit plot)
+                  	fcs-cm pwps-cm (->> (:plot/initial-sm-unit plot-yv)
                      			               remove-namespace-from-keyword))
                  (aggregate-layers + *layer-sizes* ,,,))
            

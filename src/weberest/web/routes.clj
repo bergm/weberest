@@ -100,6 +100,14 @@
              (#(do (println (str %)) %) ,,,)
              (rur/content-type ,,, "application/edn")))
    
+    (GET "/:plot-id" [plot-id format & data]
+         (condp = format
+           "csv" (-> (plot/calc-plot "berest" #_(user-id req) farm-id plot-id data)
+                     rur/response
+                     (rur/content-type "text/csv"))
+           :else (rur/not-found (str "Format '" format "' is not supported!"))))
+   
+    
    #_(GET "/new" []
         (common/layout (plot/new-plot-layout (user-id req) farm-id)))
    

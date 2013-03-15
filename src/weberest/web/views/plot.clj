@@ -20,7 +20,8 @@
             [formative 
              [core :as f]
              [parse :as fp]]
-            [clojure-csv.core :as csv])
+            [clojure-csv.core :as csv]
+            [clojure.edn :as cedn])
   (:use [c2.core :only [unify]]
         [clojure.core.match :only [match]]
         [let-else :only [let?]] 
@@ -711,6 +712,11 @@
                       (assoc sm (:doy m) m)))
                (sorted-map) wd)))
 
+(defn parse-irrigation-data* [year irrigation-data]
+  (for [[day month amount] irrigation-data]
+       {:irrigation/abs-day (bu/date-to-doy (Integer/parseInt day) (Integer/parseInt month) year) 
+        :irrigation/amount (Float/parseFloat amount)}))
+
 (defn parse-irrigation-data [irrigation-data delim]
   (for [[abs-day amount] (rest (csv/parse-csv irrigation-data 
                                               :delimiter delim))]
@@ -809,6 +815,81 @@
         ;which doesn't fit to the input list
         (csv/write-csv (bc/create-csv-output inputs (concat (rest sms-7*) (rest prognosis*)))
                        :delimiter ";")))  
+  
+  
+(defn calc-plot 
+  [user-id farm-id plot-id 
+   {:keys [until-day until-month 
+           weather-year
+           irrigation-data
+           #_dc-state-data]}]
+  (let? [db (-?>> user-id
+              (str bd/datomic-base-uri ,,,)
+              d/connect
+              d/db)
+         :else [:div#error "Fehler: Konnte keine Verbindung zur Datenbank herstellen!"]
+         
+         plot (bc/db-read-plot db plot-id 2012)
+         :else [:div#error "Fehler: Konnte Schlag mit Nummer: " plot-id " nicht laden!"]
+        
+         weather-year* (Integer/parseInt weather-year)
+         weathers (get bc/weather-map weather-year*) 
+                 
+         irrigation-donations (parse-irrigation-data* (cedn/read-string irrigation-data) weather-year*)
+          
+         #_dc-assertions 
+         #_(->> dc-state-data
+              (#(parse-dc-state-data % \;) ,,,)
+                                     (map (fn [{:keys [abs-day dc]}]
+                                            (bd/create-dc-assertion* weather-year* abs-day dc))
+                                          ,,,))
+         ;plot* (update-in plot [])
+          
+          
+         until-julian-day (bu/date-to-doy (Integer/parseInt until-day)
+                                          (Integer/parseInt until-month)
+                                          weather-year*)
+         
+         inputs (bc/create-input-seq plot weathers irrigation-donations 
+                                     (+ until-julian-day* 7) :sprinkle-losses)
+         inputs-7 (drop-last 7 inputs)
+         
+         ;xxx (map (|-> (--< :abs-day :irrigation-amount) str) inputs-7)
+         ;_ (println xxx)
+         
+         prognosis-inputs (take-last 7 inputs)
+         days (range (-> inputs first :abs-day) (+ until-julian-day* 7 1))
+         
+         sms-7* (bc/calc-soil-moistures* inputs-7 (:plot/initial-soil-moistures plot))
+         {soil-moistures-7 :soil-moistures 
+         :as sms-7} (last sms-7*) 
+         #_(bc/calc-soil-moistures inputs-7 (:plot/initial-soil-moistures plot))
+         
+         prognosis* (bc/calc-soil-moisture-prognosis* 7 prognosis-inputs soil-moistures-7)
+         prognosis (last prognosis*)
+         #_(bc/calc-soil-moisture-prognosis 7 prognosis-inputs soil-moistures-7)
+                  
+         #_no-of-layers 
+         #_(-> sms-7* 
+             first 
+             :soil-moistures 
+             count)
+                      
+          #_sms-layers 
+          #_(for [i (range no-of-layers)] 
+                 (map (|-> :soil-moistures 
+                           (|* args-21->12 nth i)
+                           (|*kw bu/round :digits 5))
+                      (rest sms-7*)))
+            
+        ;sms-days (map :abs-day (rest sms-7*))
+        ]
+        
+        ;use rest on sms-7* etc. to skip the initial value prepended by reductions 
+        ;which doesn't fit to the input list
+        (csv/write-csv (bc/create-csv-output inputs (concat (rest sms-7*) (rest prognosis*)))
+                       :delimiter ";")))    
+  
   
 (defn plots-layout [user-id farm-id]
   [:div "user-id: " user-id " all plots in farm " farm-id])

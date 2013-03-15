@@ -3,10 +3,7 @@
             [webfui.utilities :as wu]
             [goog.net.XhrIo :as xhr]
             [cljs.reader :as cljsr])  
-  #_(:use [webfui.framework :only [launch-app]]
-        [webfui.utilities :only [get-attribute clicked]]
-        [cljs.reader :only [read-string]])
-  (:use-macros [webfui.framework.macros :only [add-mouse-watch]]))
+  (:require-macros [webfui.framework.macros :as wm]))
 
 (declare app-state)
 
@@ -21,11 +18,10 @@
 
 (def initial-state {:plot-ids []
                     :selected-plot-id "zalf"
-                    :until-julian-day 250
-                    :until-day-month []
+                    :until-day-month [1 8]
                     :weather-year 1993
                     :csv-separator ";"
-                    :irrigation-data []})
+                    :irrigation-data [[1 4 22] [2 5 10] [11 7 30]]})
 
 (def app-state (atom initial-state))
 
@@ -47,47 +43,74 @@
                     {:selected "selected"})) 
            (or display-value value)])
 
-(defn render-all [state]
-  (let [year (:weather-year state)]
-   [:form {:name "test-data-form"}
-    [:p 
-     [:label {:for "plot-id"} "Schlag Id: "] 
-     [:select {:id "plot-id"}
-      (for [pid (:plot-ids state)]
-        (create-option pid (:selected-plot-id state)))]]
-    
-    [:p 
-     [:label {:for "until-doy"} "bis lfd. Tag: "]
-     [:input {:id "until-doy" :type "number" 
-              :min "1" :max (if (is-leap-year year) "366" "365") 
-              :value (str (:until-julian-day state))}]]
-    
-    [:p
-     [:label {:for "until-date"} "[bis Datum]: "]
-     [:input {:id "until-date" :type "date"}]]
-    
-    [:p 
-     [:label {:for "weather-year"} "Jahr (Wetter): "]
-     [:select {:id "weather-year" :type "text" :list "year-list"}
-      (for [y (range 1993 (inc 1998))] 
-        (create-option y year))]]
-    
-    ]
-  )
-  
-  
-  
-  
-  
-  #_[:table [:tbody [:tr [:td {:colspan 4}
-                        [:div#display (render-display state)]]]
-           (for [row calculator-keys]
-             [:tr (for [[sym label mouse] row]
-                    [:td {:colspan ({:eq 2} sym 1)}
-                     [:div {:id sym
-                            :mouse mouse}
-                      label]])])]])
+(defn create-number-input [watch placeholder & [value]]
+  [:input (merge {:type "number" :watch watch :placeholder placeholder} 
+                 (when value {:value value}))])
 
+(defn create-irrigation-inputs [& [day month amount]]
+  [:div 
+   (create-number-input :day-watch "Tag" day)
+   (create-number-input nil "Monat" month)
+   (create-number-input nil "Menge [mm]" amount)])
+
+#_(wm/add-dom-watch :day-watch [state new-element]
+                  (let [{:keys [value]} (second new-element)]
+                    (when (valid-integer value)
+                      {id (js/parseInt value)})))
+
+(defn render-all [state]
+  (let [year (:weather-year state)
+        [until-day until-month] (:until-day-month state)]
+    [:form {:name "test-data-form"}
+     [:fieldset 
+      [:legend "Schlag Id"] 
+      [:select
+       (for [pid (:plot-ids state)]
+         (create-option pid (:selected-plot-id state)))]]
+     
+     [:fieldset
+      [:legend "Rechnen bis Datum"]
+      (create-number-input "Tag" until-day)
+      (create-number-input "Monat" until-month)]
+     
+     [:fieldset
+      [:legend "Wetterdaten für Jahr"]
+      [:select {:id "weather-year" :type "text" :list "year-list"}
+       (for [y (range 1993 (inc 1998))] 
+         (create-option y year))]]
+     
+     [:fieldset 
+      [:legend "Beregnungsdaten"]
+      (for [[day month amount] (:irrigation-data state)]
+        (create-irrigation-inputs day month amount))
+      (create-irrigation-inputs)]
+     
+     #_[:input {:type "submit" :mouse :calc-and-download :value "Berechnen & CSV-Downloaden" :onsubmit "false"}]
+     
+     [:div {:style "color:green;background-color:red;" :mouse :calc-and-download} "Berechnen & CSV-Downloaden"]
+     
+     ]))
+
+
+(wm/add-mouse-watch 
+ :calc-and-download [state first-element last-element]
+ (when (wu/clicked first-element last-element)
+   (let [[day month] (:until-day-month state)
+         url (str "rest/farms/111/plots/" (:selected-plot-id state) 
+                  "?format=csv"
+                  "&until-day=" day "&until-month=" month
+                  "&weather-year=" (:weather-year state) 
+                  "&irrigation-data=" (prn-str (:irrigation-data state)))]
+     (send initial-state :get url #()))))
+  
+  #_(add-dom-watch :new-irrigation [state new-element]
+                 nil
+                 #_(js/alert (pr-str new-element))
+               #_(let [{:keys [value]} (second new-element)]
+                 (when (valid-integer value)
+                   {id (js/parseInt value)})))
+    
+  
 #_(add-mouse-watch :num [state first-element last-element]
                  (when (clicked first-element last-element)
                    (let [{:keys [amount amount-decimal]} state
