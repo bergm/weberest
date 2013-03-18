@@ -126,7 +126,7 @@
  
   {:db/id #db/id[:db.part/db]
   :db/ident :irrigation/amount
-  :db/valueType :db.type/long
+  :db/valueType :db.type/double
   :meta/unit :mm
   :db/cardinality :db.cardinality/one
   :db/doc "Amount of irrigation water for donation"

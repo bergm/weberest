@@ -47,13 +47,13 @@
                                    :pretty-print true}}
                        #_{:id "calculator-ajax"
                         :source-path "src-cljs/calculator_ajax"
-                        :compiler {:output-to "resources/public/js/calculator_ajax.js"
+                        :compiler {:output-to "resources/public/cljs/calculator_ajax.js"
                                    :optimizations :whitespace
                                    :pretty-print true}}
                        {:id "webfui-client"
                         :source-paths ["src/weberest/web/clients/webfui"]
                         ;:source-path "src/weberest/web/clients/webfui"
-                        :compiler {:output-to "resources/public/js/webfui_client.js"
+                        :compiler {:output-to "resources/public/cljs/webfui_client.js"
                                    :optimizations :whitespace
                                    :pretty-print true}}]}
   :ring {;:handler weberest.web.routes/berest-app

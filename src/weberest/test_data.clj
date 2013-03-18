@@ -311,14 +311,14 @@
                                                 [[1 6] 11]
                                                 [[6 10] 49]])
         irrigation-donations (bd/create-irrigation-donations year
-                                                             [[[13 5] 6]
-                                                              [[18 5] 6]
-                                                              [[21 5] 6]
-                                                              [[25 5] 2]
-                                                              [[26 8] 15]
-                                                              [[27 8] 15]])
+                                                             [[[13 5] 6.0]
+                                                              [[18 5] 6.0]
+                                                              [[21 5] 6.0]
+                                                              [[25 5] 2.0]
+                                                              [[26 8] 15.0]
+                                                              [[27 8] 15.0]])
         crop-instances [{:db/id (bd/new-entity-id)
-                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0801/1/0") 
+                         :crop-instance/template (bd/unique-query-for-db-id (d/db datomic-connection) :crop/id "0801/1/0") 
                          :crop-instance/name "Zuckerrübe - 801/1/0"
                          :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
                          :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
@@ -356,14 +356,14 @@
                                                 [[14 6] 65]
                                                 [[26 7] 92]])
         irrigation-donations (bd/create-irrigation-donations year
-                                                             [[[16 5] 12]
-                                                              [[24 6] 10]
-                                                              [[28 6] 10]
-                                                              [[29 6] 11]
-                                                              [[1 7] 10]
-                                                              [[5 7] 11]])
+                                                             [[[16 5] 12.0]
+                                                              [[24 6] 10.0]
+                                                              [[28 6] 10.0]
+                                                              [[29 6] 11.0]
+                                                              [[1 7] 10.0]
+                                                              [[5 7] 11.0]])
         crop-instances [{:db/id (bd/new-entity-id)
-                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0101/1/0") 
+                         :crop-instance/template (bd/unique-query-for-db-id (d/db datomic-connection) :crop/id "0101/1/0") 
                          :crop-instance/name "Winterweizen/EJ - 0101/1/0"
                          :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
                          :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
@@ -400,9 +400,9 @@
                                                 [[7 6] 61]
                                                 [[17 7] 92]])
         irrigation-donations (bd/create-irrigation-donations year
-                                                             [[[30 6] 10]])
+                                                             [[[30 6] 10.0]])
         crop-instances [{:db/id (bd/new-entity-id)
-                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0120/1/0") 
+                         :crop-instance/template (bd/unique-query-for-db-id (d/db datomic-connection) :crop/id "0120/1/0") 
                          :crop-instance/name "Wintergerste/EJ - 0120/1/0"
                          :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
                          :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
@@ -440,11 +440,11 @@
                                                 [[30 5] 61]
                                                 [[31 8] 92]])
         irrigation-donations (bd/create-irrigation-donations year
-                                                             [[[20 6] 10]
-                                                              [[25 6] 10]
-                                                              [[27 6] 10]])
+                                                             [[[20 6] 10.0]
+                                                              [[25 6] 10.0]
+                                                              [[27 6] 10.0]])
         crop-instances [{:db/id (bd/new-entity-id)
-                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0110/1/0") 
+                         :crop-instance/template (bd/unique-query-for-db-id (d/db datomic-connection) :crop/id "0110/1/0") 
                          :crop-instance/name "Winterroggen/EJ - 0110/1/0"
                          :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
                          :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
@@ -482,18 +482,18 @@
                                                 [[23 9] 49]])
         irrigation-donations (bd/create-irrigation-donations year
                                                              [[[20 6] 12.5]
-                                                              [[3 7] 20]
-                                                              [[10 7] 10]
-                                                              [[11 7] 10]
-                                                              [[17 7] 25]
-                                                              [[8 8] 25]
-                                                              [[12 8] 25]
-                                                              [[16 8] 30]
+                                                              [[3 7] 20.0]
+                                                              [[10 7] 10.0]
+                                                              [[11 7] 10.0]
+                                                              [[17 7] 25.0]
+                                                              [[8 8] 25.0]
+                                                              [[12 8] 25.0]
+                                                              [[16 8] 30.0]
                                                               [[19 8] 27.5]
-                                                              [[22 8] 40]
-                                                              [[28 8] 25]])
+                                                              [[22 8] 40.0]
+                                                              [[28 8] 25.0]])
         crop-instances [{:db/id (bd/new-entity-id)
-                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0801/1/0") 
+                         :crop-instance/template (bd/unique-query-for-db-id (d/db datomic-connection) :crop/id "0801/1/0") 
                          :crop-instance/name "Zuckerrübe - 801/1/0"
                          :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
                          :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
@@ -530,13 +530,13 @@
                                                 [[9 6] 65]
                                                 [[27 7] 92]])
         irrigation-donations (bd/create-irrigation-donations year
-                                                             [[[19 5] 20]
-                                                              [[28 5] 22]
-                                                              [[4 6] 20]
-                                                              [[24 6] 20]
-                                                              [[3 7] 20]])
+                                                             [[[19 5] 20.0]
+                                                              [[28 5] 22.0]
+                                                              [[4 6] 20.0]
+                                                              [[24 6] 20.0]
+                                                              [[3 7] 20.0]])
         crop-instances [{:db/id (bd/new-entity-id)
-                         :crop-instance/template (bd/unique-query-for-db-id db :crop/id "0101/1/0") 
+                         :crop-instance/template (bd/unique-query-for-db-id (d/db datomic-connection) :crop/id "0101/1/0") 
                          :crop-instance/name "Winterweizen/EJ - 0101/1/0"
                          :crop-instance/dc-assertions (bd/get-entity-ids dc-assertions)
                          :crop-instance/irrigation-donations (bd/get-entity-ids irrigation-donations)}]
@@ -589,15 +589,13 @@
 																							 .get)
         				
         plot-e-id (d/resolve-tempid db-after tempids (:db/id plot))
-        
-        _ (--<* add-zalf-1993 add-zalf-1993 add-zalf-1993 add-zalf-1993 add-zalf-1993 add-zalf-1993 plot)
-        
-				_ (add-zalf-1993 plot-e-id)
-        _ (add-zalf-1994 plot-e-id)
-        _ (add-zalf-1995 plot-e-id)
-        _ (add-zalf-1996 plot-e-id)
-        _ (add-zalf-1997 plot-e-id)
-        _ (add-zalf-1999 plot-e-id)]
+                
+				_ (add-zalf-1993 datomic-connection plot-e-id)
+        _ (add-zalf-1994 datomic-connection plot-e-id)
+        _ (add-zalf-1995 datomic-connection plot-e-id)
+        _ (add-zalf-1996 datomic-connection plot-e-id)
+        _ (add-zalf-1997 datomic-connection plot-e-id)
+        _ (add-zalf-1998 datomic-connection plot-e-id)]
     true))
 
 

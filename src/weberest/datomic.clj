@@ -98,7 +98,7 @@
   dc state had been told the system, else '[day month]' will be assumed"
   [in-year [day month] dc & [[at-day at-month :as at]]]
   (let [abs-dc-day (bu/date-to-doy day month in-year)
-        at-abs-day (if (not-any? nil? at)
+        at-abs-day (if (not-any? nil? (or at [nil]))
                        (bu/date-to-doy at-day at-month in-year)
                        abs-dc-day)]
        (create-dc-assertion* in-year abs-dc-day dc at-abs-day)))
@@ -122,7 +122,7 @@
   "create datomic map for an irrigation donation"
   [in-year [start-day start-month] donation-mm & [[end-day end-month :as end-date]]]
   (let [start-abs-day (bu/date-to-doy start-day start-month in-year)
-        end-abs-day (if (not-any? nil? end-date)
+        end-abs-day (if (not-any? nil? (or end-date [nil]))
                        (bu/date-to-doy end-day end-month in-year)
                        start-abs-day)]
        (create-irrigation-donation* start-abs-day donation-mm end-abs-day)))
