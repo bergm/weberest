@@ -96,12 +96,13 @@
  :calc-and-download [state first-element last-element]
  (when (wu/clicked first-element last-element)
    (let [[day month] (:until-day-month state)
-         url (str "rest/farms/111/plots/" (:selected-plot-id state) 
-                  "?format=csv"
-                  "&until-day=" day "&until-month=" month
+         url (str "rest/farms/111/plots/" (:selected-plot-id state) ".csv" 
+                  ;"?format=csv"
+                  "?until-day=" day "&until-month=" month
                   "&weather-year=" (:weather-year state) 
                   "&irrigation-data=" (prn-str (:irrigation-data state)))]
-     (send initial-state :get url #()))))
+     (-> js/window
+         (.open ,,, url)))))
   
   #_(add-dom-watch :new-irrigation [state new-element]
                  nil

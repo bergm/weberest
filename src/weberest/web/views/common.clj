@@ -36,5 +36,5 @@
            [:title "webfui-client"]
            #_(hp/include-css (str "/css/" name ".css"))
            #_(he/javascript-tag "var CLOSURE_NO_DEPS = true;")
-           (hp/include-js (str "/js/" name ".js"))]
+           (hp/include-js (str "/cljs/" name ".js"))]
           [:body]))

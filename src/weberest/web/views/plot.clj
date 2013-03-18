@@ -714,8 +714,8 @@
 
 (defn parse-irrigation-data* [year irrigation-data]
   (for [[day month amount] irrigation-data]
-       {:irrigation/abs-day (bu/date-to-doy (Integer/parseInt day) (Integer/parseInt month) year) 
-        :irrigation/amount (Float/parseFloat amount)}))
+       {:irrigation/abs-day (bu/date-to-doy day month year) 
+        :irrigation/amount amount}))
 
 (defn parse-irrigation-data [irrigation-data delim]
   (for [[abs-day amount] (rest (csv/parse-csv irrigation-data 
@@ -818,24 +818,25 @@
   
   
 (defn calc-plot 
-  [user-id farm-id plot-id 
-   {:keys [until-day until-month 
-           weather-year
-           irrigation-data
-           #_dc-state-data]}]
+  [& {:keys [user-id farm-id plot-id]
+      {:keys [until-day until-month 
+              weather-year
+              irrigation-data
+              #_dc-state-data]} :data :as all}]  
+  (println (str all))
   (let? [db (-?>> user-id
               (str bd/datomic-base-uri ,,,)
               d/connect
               d/db)
          :else [:div#error "Fehler: Konnte keine Verbindung zur Datenbank herstellen!"]
          
-         plot (bc/db-read-plot db plot-id 2012)
+         plot (bc/db-read-plot db plot-id 1993)
          :else [:div#error "Fehler: Konnte Schlag mit Nummer: " plot-id " nicht laden!"]
         
          weather-year* (Integer/parseInt weather-year)
          weathers (get bc/weather-map weather-year*) 
                  
-         irrigation-donations (parse-irrigation-data* (cedn/read-string irrigation-data) weather-year*)
+         irrigation-donations (parse-irrigation-data* weather-year* (cedn/read-string irrigation-data) )
           
          #_dc-assertions 
          #_(->> dc-state-data
@@ -849,16 +850,16 @@
          until-julian-day (bu/date-to-doy (Integer/parseInt until-day)
                                           (Integer/parseInt until-month)
                                           weather-year*)
-         
+                 
          inputs (bc/create-input-seq plot weathers irrigation-donations 
-                                     (+ until-julian-day* 7) :sprinkle-losses)
+                                     (+ until-julian-day 7) :sprinkle-losses)
          inputs-7 (drop-last 7 inputs)
-         
+                  
          ;xxx (map (|-> (--< :abs-day :irrigation-amount) str) inputs-7)
          ;_ (println xxx)
          
          prognosis-inputs (take-last 7 inputs)
-         days (range (-> inputs first :abs-day) (+ until-julian-day* 7 1))
+         days (range (-> inputs first :abs-day) (+ until-julian-day 7 1))
          
          sms-7* (bc/calc-soil-moistures* inputs-7 (:plot/initial-soil-moistures plot))
          {soil-moistures-7 :soil-moistures 

@@ -549,22 +549,27 @@ fc, pwp [mm/cm] -> [mm/cm]"
                  fcs-cm)
            
            ;read a fallow "crop" to be used with this plot
-           fallow (db-read-crop db 0 :cultivation-type 1 :usage 0) ]
-      
-      (-> (entity->map db plot)
-        ((fn [p] (clojure.walk/postwalk (fn [item] 
-                                          (if (vector? item)
-                                            (let [[kw db-crop-data-map] item]
-                                              (if (= kw :crop-instance/template)
-                                                [kw (db-crop-data-map->crop db-crop-data-map)]
-                                                item))
-                                            item)) 
-                                        p)) ,,,)
-        (assoc ,,, :plot/initial-soil-moistures sms
-                   :plot/field-capacities fcs
-                   :plot/permanent-wilting-points pwps
-                   :lambda-without-correction lwc
-                   :fallow fallow)))))
+           fallow (db-read-crop db 0 :cultivation-type 1 :usage 0)
+             
+           crop-yv* (->> plot-yv
+                         (entity->map db ,,,)
+                         (clojure.walk/postwalk (fn [item] 
+                                                  (if (vector? item)
+                                                    (let [[kw db-crop-data-map] item]
+                                                      (if (= kw :crop-instance/template)
+                                                        [kw (db-crop-data-map->crop db-crop-data-map)]
+                                                        item))
+                                                    item)) 
+                                                ,,,))]
+            
+            (-> (entity->map db plot)
+                (merge ,,, (dissoc crop-yv* :db/id))
+                (assoc ,,, 
+                  :plot/initial-soil-moistures sms
+                  :plot/field-capacities fcs
+                  :plot/permanent-wilting-points pwps
+                  :lambda-without-correction lwc
+                  :fallow fallow)))))
 
 (defn db-store-initial-soil-moisture 
   [datomic-connection plot-no depths soil-moistures units]
@@ -985,26 +990,26 @@ to which actual abs-day the reached DC state belongs given the dc-assertions"
 
 (defn dc-to-abs+rel-dc-day-from-crop-instance-dc-assertions
   "create a dc to abs+rel-dc-day map from the data given with crop-instance
-(dc-assertions and the crop template, thus the dc-to-rel-dc-day curve)"
+  (dc-assertions and the crop template, thus the dc-to-rel-dc-day curve)"
   [crop-instance]
   (let? [dc-assertions* (->> crop-instance
-                          :crop-instance/dc-assertions
-                          (sort-by :assertion/at-abs-day ,,,)) 
+                             :crop-instance/dc-assertions
+                             (sort-by :assertion/at-abs-day ,,,)) 
          :is-not empty?
-          
+         
          ;_ (println dc-assertions*)
          
          sorted-dc-to-rel-dc-days (->> crop-instance 
-                                    :crop-instance/template 
-                                    :crop/dc-to-rel-dc-days
-                                    (into (sorted-map) ,,,))
+                                       :crop-instance/template 
+                                       :crop/dc-to-rel-dc-days
+                                       (into (sorted-map) ,,,))
          
          ;_ (println sorted-dc-to-rel-dc-days)
          
          {dc* :assertion/assert-dc
           abs-dc-day* :assertion/abs-assert-dc-day} (first dc-assertions*)
          :else nil
-                  
+         
          ;_ (println "dc-to-rel-dc-days: " dc-to-rel-dc-days \newline)
          
          rel-dc-day* (interpolated-value sorted-dc-to-rel-dc-days dc*)
@@ -1015,23 +1020,23 @@ to which actual abs-day the reached DC state belongs given the dc-assertions"
                  {:abs-dc-day (+ abs-dc-day* (- rel-dc-day rel-dc-day*))
                   :rel-dc-day rel-dc-day})
                sorted-dc-to-rel-dc-days*)]
-    
-    ;_ (println "initial: " sorted-initial-dc-to-abs+rel-dc-day \newline)
-    
-    (reduce (fn [m {dc* :assertion/assert-dc
-                    abs-dc-day* :assertion/abs-assert-dc-day}]
-              (assoc m dc* {:abs-dc-day abs-dc-day*
-                            :rel-dc-day (if-let [{:keys [abs-dc-day rel-dc-day]} 
-                                                 (or (get m dc*)
-                                                     (->> (adjacent-kv-pairs m dc*)
-                                                       (map second ,,,)
-                                                       ;now order
-                                                       (into #{} ,,,)
-                                                       ;get lowest day
-                                                       first))] 
-                                          (+ rel-dc-day 
-                                             (- abs-dc-day* abs-dc-day)))}))
-            sorted-initial-dc-to-abs+rel-dc-day (rest dc-assertions*))))
+        
+        ;_ (println "initial: " sorted-initial-dc-to-abs+rel-dc-day \newline)
+        
+        (reduce (fn [m {dc* :assertion/assert-dc
+                        abs-dc-day* :assertion/abs-assert-dc-day}]
+                  (assoc m dc* {:abs-dc-day abs-dc-day*
+                                :rel-dc-day (if-let [{:keys [abs-dc-day rel-dc-day]} 
+                                                     (or (get m dc*)
+                                                         (->> (adjacent-kv-pairs m dc*)
+                                                              (map second ,,,)
+                                                              ;now order
+                                                              (into #{} ,,,)
+                                                              ;get lowest day
+                                                              first))] 
+                                              (+ rel-dc-day 
+                                                 (- abs-dc-day* abs-dc-day)))}))
+                sorted-initial-dc-to-abs+rel-dc-day (rest dc-assertions*))))
 
 (defn dc-to-abs+rel-dc-day-from-plot-dc-assertions 
   "create a dc to abs-dc-day map for all crops in sequence of dc-assertions"
@@ -1053,7 +1058,7 @@ to which actual abs-day the reached DC state belongs given the dc-assertions"
                              :crop-instance crop-instance}])
               dc-map))
        localized-crop-instance-curves))
-  
+
 (defn- merge-abs-dc-day-to-crop-data-maps
   "merge all crops/abs-dc-days as pre-stage to get final map with correct order in year"
   [abs-dc-day-to-crop-data] 
@@ -1061,112 +1066,112 @@ to which actual abs-day the reached DC state belongs given the dc-assertions"
             (into m 
                   (for [[abs-dc-day data-map] crop-map]
                     (assoc m abs-dc-day 
-                           (if-let [val (get m abs-dc-day)]
-                             (if (vector? val)
-                               (conj val data-map)
-                               [val data-map])
-                             data-map)))))
+                      (if-let [val (get m abs-dc-day)]
+                        (if (vector? val)
+                          (conj val data-map)
+                          [val data-map])
+                        data-map)))))
           (sorted-map) abs-dc-day-to-crop-data))
 
 (defn- calculate-final-abs-dc-to-crop-data-map
   "calculate order given a list of merged abs-dc-day-to-crop-data"
   [merged-abs-dc-day-to-crop-data-maps]
   (->> merged-abs-dc-day-to-crop-data-maps
-    (reduce (fn [[m last-crop-instance crop-canceled] 
-                 [abs-dc-day data-map?s]]
-              (let [v? (vector? data-map?s)
-                    lci (if last-crop-instance
-                          last-crop-instance
-                          ;if is vector simply take first crop-instance, other decision could be implemented
-                          (:crop-instance ((if v? first identity) data-map?s)))]
-                (if v?
-                  ;we got a cancelation of the current crop, but have to decide which
-                  ;to choose now
-                  (->> data-map?s
-                    ;ignore the data belong to last crop instance
-                    (filter #(not= lci (:crop-instance %)) ,,,)
-                    ;for now simply take first from list (other decision could be implemented)
-                    first
-                    ;create mapping to data for current abs-dc-day
-                    (assoc m abs-dc-day ,,,)
-                    ;create accumulator for next reduce call
-                    (#(vector % (:crop-instance %) true) ,,,))
-                  ;ignore crop/crop-data if its from previous crop
-                  ;and only if crop has been canceled before by other crop
-                  [(if (or (= lci (:crop-instance data-map?s))
-                           (not crop-canceled))
-                     (assoc m abs-dc-day data-map?s)
-                     m) lci crop-canceled])))
-            [(sorted-map) nil false] ,,,)
-    first))
+       (reduce (fn [[m last-crop-instance crop-canceled] 
+                    [abs-dc-day data-map?s]]
+                 (let [v? (vector? data-map?s)
+                       lci (if last-crop-instance
+                             last-crop-instance
+                             ;if is vector simply take first crop-instance, other decision could be implemented
+                             (:crop-instance ((if v? first identity) data-map?s)))]
+                   (if v?
+                     ;we got a cancelation of the current crop, but have to decide which
+                     ;to choose now
+                     (->> data-map?s
+                          ;ignore the data belong to last crop instance
+                          (filter #(not= lci (:crop-instance %)) ,,,)
+                          ;for now simply take first from list (other decision could be implemented)
+                          first
+                          ;create mapping to data for current abs-dc-day
+                          (assoc m abs-dc-day ,,,)
+                          ;create accumulator for next reduce call
+                          (#(vector % (:crop-instance %) true) ,,,))
+                     ;ignore crop/crop-data if its from previous crop
+                     ;and only if crop has been canceled before by other crop
+                     [(if (or (= lci (:crop-instance data-map?s))
+                              (not crop-canceled))
+                        (assoc m abs-dc-day data-map?s)
+                        m) lci crop-canceled])))
+               [(sorted-map) nil false] ,,,)
+       first))
 
 (defn abs-dc-day->crop-instance
-    "given an abs-dc-day return the crop-instance being used and 
-the rel-dc-day for this crop-instance
-assumes that
-a) dc = 1 means seeding, if there's no dc = 1, then is a winter crop, except
-if the crop has a previous crop, then a dc > 1 means the crop stop breaks the previous crop
-b) there will always be a harvesting (= last dc) step, thus after this step there
-is always fallow unless another crop follows with a dc > 1 (see a)"
-    [fallow abs-dc-day-to-crop-instance-data abs-dc-day]
-    (let [fallow* {:rel-dc-day 1
-                   :crop fallow}
-          
-          first-abs-dc-day (ffirst abs-dc-day-to-crop-instance-data)] 
-      (if-let [{dc :dc 
-                rel-dc-day :rel-dc-day
-                {crop :crop-instance/template} :crop-instance}
+  "given an abs-dc-day return the crop-instance being used and 
+  the rel-dc-day for this crop-instance
+  assumes that
+  a) dc = 1 means seeding, if there's no dc = 1, then is a winter crop, except
+  if the crop has a previous crop, then a dc > 1 means the crop stop breaks the previous crop
+  b) there will always be a harvesting (= last dc) step, thus after this step there
+  is always fallow unless another crop follows with a dc > 1 (see a)"
+  [fallow abs-dc-day-to-crop-instance-data abs-dc-day]
+  (let [fallow* {:rel-dc-day 1
+                 :crop fallow}
+        
+        first-abs-dc-day (ffirst abs-dc-day-to-crop-instance-data)] 
+    (if-let [{dc :dc 
+              rel-dc-day :rel-dc-day
+              {crop :crop-instance/template} :crop-instance}
              (get abs-dc-day-to-crop-instance-data abs-dc-day)] 
-        {:rel-dc-day rel-dc-day :crop crop}
-        (let [{[l-abs-dc-day 
-                {l-dc :dc 
-                 l-rel-dc-day :rel-dc-day
-                 {l-crop :crop-instance/template} :crop-instance
-                 :as lower}] :lower
-               [u-abs-dc-day 
-                {u-dc :dc 
-                 u-rel-dc-day :rel-dc-day
-                 {u-crop :crop-instance/template} :crop-instance
-                 :as upper}] :upper} 
-              (adjacent-kv-pairs abs-dc-day-to-crop-instance-data abs-dc-day)]
-          (cond 
-            ;before summer crop, just fallow, but before winter crop = winter crop
-            (and (not lower) upper) (if (> u-dc 1) 
-                                      {:rel-dc-day u-rel-dc-day :crop u-crop}
-                                      fallow*)
-            ;after last crop just fallow
-            (and lower (not upper)) fallow*
-            (and lower upper) (if
-                                ;if next=prev crop, just interpolate
-                                (or (= l-crop u-crop)
-                                    ;if next crop is a different crop and next crop has
-                                    ;a dc > 1, thus already after seeding
-                                    ;keep on doing the previous crop, until the next crop
-                                    ;comes, because the next crop will stop break the previous
-                                    ;crop
-                                    (and (not= l-crop u-crop)
-                                         (> u-dc 1)))
-                                {:rel-dc-day (+ l-rel-dc-day (- abs-dc-day l-abs-dc-day))
-                                 :crop l-crop}
-                                ;if next crop is a different crop, fallow if
-                                ;the next crop's dc is 1 => there new crop will start
-                                fallow*)
-            :else nil)))))
+      {:rel-dc-day rel-dc-day :crop crop}
+      (let [{[l-abs-dc-day 
+              {l-dc :dc 
+               l-rel-dc-day :rel-dc-day
+               {l-crop :crop-instance/template} :crop-instance
+               :as lower}] :lower
+             [u-abs-dc-day 
+              {u-dc :dc 
+               u-rel-dc-day :rel-dc-day
+               {u-crop :crop-instance/template} :crop-instance
+               :as upper}] :upper} 
+            (adjacent-kv-pairs abs-dc-day-to-crop-instance-data abs-dc-day)]
+        (cond 
+         ;before summer crop, just fallow, but before winter crop = winter crop
+         (and (not lower) upper) (if (> u-dc 1) 
+                                   {:rel-dc-day u-rel-dc-day :crop u-crop}
+                                   fallow*)
+         ;after last crop just fallow
+         (and lower (not upper)) fallow*
+         (and lower upper) (if
+                             ;if next=prev crop, just interpolate
+                             (or (= l-crop u-crop)
+                                 ;if next crop is a different crop and next crop has
+                                 ;a dc > 1, thus already after seeding
+                                 ;keep on doing the previous crop, until the next crop
+                                 ;comes, because the next crop will stop break the previous
+                                 ;crop
+                                 (and (not= l-crop u-crop)
+                                      (> u-dc 1)))
+                             {:rel-dc-day (+ l-rel-dc-day (- abs-dc-day l-abs-dc-day))
+                              :crop l-crop}
+                             ;if next crop is a different crop, fallow if
+                             ;the next crop's dc is 1 => there new crop will start
+                             fallow*)
+         :else nil)))))
 
 #_(deftest test-abs-dc-day->crop-instance 
   (is (= )))
 
 (defn base-input-seq 
   "create a input sequence for soil-moisture calculations
-- takes into account dc assertions which are available in plot map
-- lazy sequence as long as weather is available"
+  - takes into account dc assertions which are available in plot map
+  - lazy sequence as long as weather is available"
   [plot sorted-weather-map irrigation-donations irrigation-mode]
   (let [abs-dc-day-to-crop-instance-data  
         (->> (:plot/crop-instances plot)
-          dc-to-abs+rel-dc-day-from-plot-dc-assertions
-          index-localized-crop-instance-curves-by-abs-dc-day
-          merge-abs-dc-day-to-crop-data-maps
-          calculate-final-abs-dc-to-crop-data-map)]
+             dc-to-abs+rel-dc-day-from-plot-dc-assertions
+             index-localized-crop-instance-curves-by-abs-dc-day
+             merge-abs-dc-day-to-crop-data-maps
+             calculate-final-abs-dc-to-crop-data-map)]
     (for [abs-day (range 1 (-> sorted-weather-map rseq ffirst inc))
           :let [weather (sorted-weather-map abs-day)]
           :while weather]
@@ -1187,17 +1192,17 @@ is always fallow unless another crop follows with a dc > 1 (see a)"
          :irrigation-mode irrigation-mode
          :cover-degree cover-degree
          :qu-target (bu/round 
-                      (if (< prev-day-cover-degree 1/100) 
-                        0 
-                        (interpolated-value (:crop/rel-dc-day-to-quotient-aet-pets crop) rel-dc-day)) 
-                      :digits 3)
+                     (if (< prev-day-cover-degree 1/100) 
+                       0 
+                       (interpolated-value (:crop/rel-dc-day-to-quotient-aet-pets crop) rel-dc-day)) 
+                     :digits 3)
          :rounded-extraction-depth-cm (->> (if (<= cover-degree 1/1000) 
                                              0 
                                              (interpolated-value (:crop/rel-dc-day-to-extraction-depths crop) rel-dc-day))
-                                        (+ 1 ,,,)
-                                        (bh/swap / 10 ,,,)
-                                        nt/round
-                                        (* 10 ,,,))
+                                           (+ 1 ,,,)
+                                           (bh/swap / 10 ,,,)
+                                           nt/round
+                                           (* 10 ,,,))
          :transpiration-factor (interpolated-value (:crop/rel-dc-day-to-transpiration-factors crop) rel-dc-day)
          :fcs (:plot/field-capacities plot)
          :pwps (:plot/permanent-wilting-points plot)

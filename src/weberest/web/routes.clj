@@ -1,8 +1,9 @@
 (ns weberest.web.routes
   (:use [compojure.core :as compojure :only [ANY GET POST PUT DELETE defroutes]]
-        [clojure.core.match :only [match]]) 
-  (:require [weberest.web.views.common :as common]
-            #_[net.cgrand.enlive-html :as html]
+        [clojure.core.match :only [match]]
+        [clojure.core.incubator :only [-?> -?>>]]
+        [weberest.helper :only [|*]]) 
+  (:require #_[net.cgrand.enlive-html :as html]
             [compojure 
              [handler :as handler]
              [route :as route]]
@@ -11,6 +12,7 @@
              [farm :as farm]
              [db :as db] 
              [plot :as plot]
+             [common :as common]
              #_[climate :as climate]
              #_[technology :as tech]
              [crop :as crop]
@@ -21,7 +23,8 @@
             [ring.middleware.edn :as redn]
             [cemerick.friend :as friend]
             [cemerick.friend  [workflows :as workflows]
-                              [credentials :as creds]]))
+                              [credentials :as creds]]
+            [clojure.string :as cs]))
 
 ;;farms
 ;;----------------------------------------------------------------
@@ -86,6 +89,13 @@
                              (Integer/parseInt until)
                              250))))))
 
+(defn- split-plot-id|format [plot-id+format]
+  (println plot-id+format)
+  (-> plot-id+format
+      (cs/split ,,, #"\.")
+      (#(split-at (-> % count dec (max 1 ,,,)) %) ,,,)
+      (#(map (|* cs/join ".") %) ,,,)))
+
 (defroutes rest-plot-routes
   (compojure/context 
    "/rest/farms/:farm-id" [farm-id :as req]
@@ -97,15 +107,15 @@
          (-> (plot/rest-plot-ids :edn "admin" #_(user-id req) farm-id)
              pr-str
              rur/response
-             (#(do (println (str %)) %) ,,,)
              (rur/content-type ,,, "application/edn")))
    
-    (GET "/:plot-id" [plot-id format & data]
-         (condp = format
-           "csv" (-> (plot/calc-plot "berest" #_(user-id req) farm-id plot-id data)
-                     rur/response
-                     (rur/content-type "text/csv"))
-           :else (rur/not-found (str "Format '" format "' is not supported!"))))
+    (GET "/:plot-id+format?" [plot-id+format? format & data]
+         (let [[plot-id format*] (split-plot-id|format plot-id+format?)]
+           (condp = (or format* format)
+             "csv" (-> (plot/calc-plot :user-id "berest" #_(user-id req) :farm-id farm-id :plot-id "zalf" #_plot-id :data data)
+                       rur/response
+                       (rur/content-type "text/csv"))
+             (rur/not-found (str "Format '" format "' is not supported!")))))
    
     
    #_(GET "/new" []
