@@ -172,3 +172,4 @@
                    (send old :put (str "memory/" memory) memory-saved))))))
 
 (wf/launch-app app-state render-all)
+
