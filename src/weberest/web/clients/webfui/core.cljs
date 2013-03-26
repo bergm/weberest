@@ -2,7 +2,8 @@
   (:require [webfui.framework :as wf]
             [webfui.utilities :as wu]
             [goog.net.XhrIo :as xhr]
-            [cljs.reader :as cljsr])  
+            [cljs.reader :as cljsr]
+            [clojure.string :as string])  
   (:require-macros [webfui.framework.macros :as wm]))
 
 (declare app-state)
@@ -21,7 +22,8 @@
                     :until-day-month [1 8]
                     :weather-year 1993
                     :csv-separator ";"
-                    :irrigation-data [[1 4 22] [2 5 10] [11 7 30]]})
+                    :irrigation-data [[1 4 22] [2 5 10] [11 7 30]]
+                    :temp-irrigation-data [nil nil nil]})
 
 (def app-state (atom initial-state))
 
@@ -43,20 +45,27 @@
                     {:selected "selected"})) 
            (or display-value value)])
 
-(defn create-number-input [watch placeholder & [value]]
-  [:input (merge {:type "number" :watch watch :placeholder placeholder} 
-                 (when value {:value value}))])
+(defn create-number-input [& opts]
+  [:input (apply merge {:type "number"} (apply hash-map opts))])
 
-(defn create-irrigation-inputs [& [day month amount]]
-  [:div 
-   (create-number-input :day-watch "Tag" day)
-   (create-number-input nil "Monat" month)
-   (create-number-input nil "Menge [mm]" amount)])
+(defn create-irrigation-inputs [& [row-no day month amount]]
+  (let [common-opts [:data-row-no row-no 
+                     :watch :irrigation-data-changed]]
+    [:div 
+     (apply create-number-input :data-id :day :placeholder "Tag" :value day common-opts)
+     (apply create-number-input :data-id :month :placeholder "Monat" :value month common-opts)
+     (apply create-number-input :data-id :amount :placeholder "Menge [mm]" :value amount common-opts)
+     [:input (merge {:type "button" :data-row-no row-no}
+                    (if row-no 
+                      {:mouse :remove-irrigation-row
+                       :value "Zeile entfernen"}
+                      {:mouse :add-irrigation-row
+                       :value "Zeile hinzufügen"}))]]))
 
-#_(wm/add-dom-watch :day-watch [state new-element]
-                  (let [{:keys [value]} (second new-element)]
-                    (when (valid-integer value)
-                      {id (js/parseInt value)})))
+(defn indexed [col]
+  (->> col
+       (interleave (range) ,,,)
+       (partition 2 ,,,)))
 
 (defn render-all [state]
   (let [year (:weather-year state)
@@ -70,8 +79,8 @@
      
      [:fieldset
       [:legend "Rechnen bis Datum"]
-      (create-number-input "Tag" until-day)
-      (create-number-input "Monat" until-month)]
+      (create-number-input :placeholder "Tag" :value until-day)
+      (create-number-input :placeholder "Monat" :value until-month)]
      
      [:fieldset
       [:legend "Wetterdaten für Jahr"]
@@ -81,39 +90,61 @@
      
      [:fieldset 
       [:legend "Beregnungsdaten"]
-      (for [[day month amount] (:irrigation-data state)]
-        (create-irrigation-inputs day month amount))
-      (create-irrigation-inputs)]
+      (for [[row-no [day month amount]] (indexed (:irrigation-data state))]
+        (create-irrigation-inputs row-no day month amount))
+      (apply create-irrigation-inputs nil (:temp-irrigation-data state))]
      
-     #_[:input {:type "submit" :mouse :calc-and-download :value "Berechnen & CSV-Downloaden" :onsubmit "false"}]
-     
-     [:div {:style "color:green;background-color:red;" :mouse :calc-and-download} "Berechnen & CSV-Downloaden"]
+     [:input {:type "button" :mouse :calc-and-download :value "Berechnen & CSV-Downloaden"}]
      
      ]))
 
 
-(wm/add-mouse-watch 
- :calc-and-download [state first-element last-element]
- (when (wu/clicked first-element last-element)
-   (let [[day month] (:until-day-month state)
-         url (str "rest/farms/111/plots/" (:selected-plot-id state) ".csv" 
-                  ;"?format=csv"
-                  "?until-day=" day "&until-month=" month
-                  "&weather-year=" (:weather-year state) 
-                  "&irrigation-data=" (prn-str (:irrigation-data state)))]
-     (-> js/window
-         (.open ,,, url)))))
-  
-  #_(add-dom-watch :new-irrigation [state new-element]
-                 nil
-                 #_(js/alert (pr-str new-element))
-               #_(let [{:keys [value]} (second new-element)]
-                 (when (valid-integer value)
-                   {id (js/parseInt value)})))
-    
-  
+(wm/add-mouse-watch :calc-and-download [state first-element last-element]
+                    (when (wu/clicked first-element last-element)
+                      (let [[day month] (:until-day-month state)
+                            url (str "rest/farms/111/plots/" (:selected-plot-id state) ".csv" 
+                                     ;"?format=csv"
+                                     "?until-day=" day "&until-month=" month
+                                     "&weather-year=" (:weather-year state) 
+                                     "&irrigation-data=" (prn-str (:irrigation-data state)))]
+                        (-> js/window
+                            (.open ,,, url)))))
+
+(wm/add-mouse-watch :remove-irrigation-row [state first-element last-element]
+                    (when (wu/clicked first-element last-element)
+                      (let [row-no (js/parseInt (wu/get-attribute first-element :data-row-no))]
+                        {:irrigation-data (keep-indexed #(when-not (= %1 row-no) %2) (:irrigation-data state))})))
+
+(wm/add-mouse-watch :add-irrigation-row [state first-element last-element]
+                    (js/alert (str (:temp-irrigation-data state)))
+                    (when (wu/clicked first-element last-element)
+                      (let [temp-id (:temp-irrigation-data state)
+                            id (:irrigation-data state)]
+                        (when (not-any? nil? temp-id)
+                          {:irrigation-data (conj id temp-id)
+                           :temp-irrigation-data [nil nil nil]}))))
+
+(wm/add-dom-watch :irrigation-data-changed [state new-element]
+                  (let [{:keys [data-id value data-row-no]} (second new-element)
+                        row-no (when (not (string/blank? data-row-no)) 
+                                 (js/parseInt data-row-no))
+                        irr-data (:irrigation-data state)
+                        irr-data-row (if row-no
+                                       (nth irr-data row-no)
+                                       (:temp-irrigation-data state))]
+                    (when-not (string/blank? value)
+                      (let [[day month amount] irr-data
+                            new-id (case (keyword data-id)
+                                     :day [(js/parseInt value) month amount]
+                                     :month [day (js/parseInt value) amount]
+                                     :amount [day month (js/parseDouble value)])]
+                        (js/alert (str "row-no: " row-no "new-id: " new-id " res: " (assoc irr-data row-no new-id)))
+                        (if row-no
+                          {:irrigation-data (assoc irr-data row-no new-id)}
+                          {:temp-irrigation-data new-id})))))
+
 #_(add-mouse-watch :num [state first-element last-element]
-                 (when (clicked first-element last-element)
+                   (when (clicked first-element last-element)
                    (let [{:keys [amount amount-decimal]} state
                          digit (js/parseInt (name (get-attribute first-element :id)))]
                      (if amount-decimal

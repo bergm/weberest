@@ -516,7 +516,7 @@ fc, pwp [mm/cm] -> [mm/cm]"
                          db plot-id year))
             :else nil
                        
-            [plot plot-yv] (map (|* bd/get-entity db) [plot-e-id yearly-values-e-id])
+            [plot plot-yv] (map (partial bd/get-entity db) [plot-e-id yearly-values-e-id])
                          
            	fcs-cm (->> (:plot/field-capacities plot)
                     (bd/create-map-from-entities :soil/upper-boundary-depth 

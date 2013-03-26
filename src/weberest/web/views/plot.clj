@@ -823,20 +823,18 @@
               weather-year
               irrigation-data
               #_dc-state-data]} :data :as all}]  
-  (println (str all))
-  (let? [db (-?>> user-id
-              (str bd/datomic-base-uri ,,,)
-              d/connect
-              d/db)
+  (let? [db (bd/current-db user-id)
          :else [:div#error "Fehler: Konnte keine Verbindung zur Datenbank herstellen!"]
          
-         plot (bc/db-read-plot db plot-id 1993)
-         :else [:div#error "Fehler: Konnte Schlag mit Nummer: " plot-id " nicht laden!"]
-        
          weather-year* (Integer/parseInt weather-year)
          weathers (get bc/weather-map weather-year*) 
+         
+         plot (bc/db-read-plot db plot-id weather-year*)
+         :else [:div#error "Fehler: Konnte Schlag mit Nummer: " plot-id " nicht laden!"]
                  
-         irrigation-donations (parse-irrigation-data* weather-year* (cedn/read-string irrigation-data) )
+         irrigation-donations (for [[day month amount] (cedn/read-string irrigation-data)]
+                                {:irrigation/abs-day (bu/date-to-doy day month weather-year*) 
+                                 :irrigation/amount amount})
           
          #_dc-assertions 
          #_(->> dc-state-data

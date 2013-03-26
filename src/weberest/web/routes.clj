@@ -89,9 +89,8 @@
                              (Integer/parseInt until)
                              250))))))
 
-(defn- split-plot-id|format [plot-id+format]
-  (println plot-id+format)
-  (-> plot-id+format
+(defn- split-plot-id-format [plot-id-format]
+  (-> plot-id-format
       (cs/split ,,, #"\.")
       (#(split-at (-> % count dec (max 1 ,,,)) %) ,,,)
       (#(map (|* cs/join ".") %) ,,,)))
@@ -109,12 +108,12 @@
              rur/response
              (rur/content-type ,,, "application/edn")))
    
-    (GET "/:plot-id+format?" [plot-id+format? format & data]
-         (let [[plot-id format*] (split-plot-id|format plot-id+format?)]
-           (condp = (or format* format)
+    (GET "/:plot-id-format" [plot-id-format format & data]
+         (let [[plot-id format*] (split-plot-id-format plot-id-format)]
+           (case (or format* format)
              "csv" (-> (plot/calc-plot :user-id "berest" #_(user-id req) :farm-id farm-id :plot-id "zalf" #_plot-id :data data)
                        rur/response
-                       (rur/content-type "text/csv"))
+                       (rur/content-type ,,, "text/csv"))
              (rur/not-found (str "Format '" format "' is not supported!")))))
    
     
