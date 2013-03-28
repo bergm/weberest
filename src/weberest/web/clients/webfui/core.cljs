@@ -116,7 +116,6 @@
                         {:irrigation-data (keep-indexed #(when-not (= %1 row-no) %2) (:irrigation-data state))})))
 
 (wm/add-mouse-watch :add-irrigation-row [state first-element last-element]
-                    (js/alert (str (:temp-irrigation-data state)))
                     (when (wu/clicked first-element last-element)
                       (let [temp-id (:temp-irrigation-data state)
                             id (:irrigation-data state)]
@@ -133,12 +132,11 @@
                                        (nth irr-data row-no)
                                        (:temp-irrigation-data state))]
                     (when-not (string/blank? value)
-                      (let [[day month amount] irr-data
+                      (let [[day month amount] irr-data-row
                             new-id (case (keyword data-id)
                                      :day [(js/parseInt value) month amount]
                                      :month [day (js/parseInt value) amount]
-                                     :amount [day month (js/parseDouble value)])]
-                        (js/alert (str "row-no: " row-no "new-id: " new-id " res: " (assoc irr-data row-no new-id)))
+                                     :amount [day month (js/parseFloat value)])]
                         (if row-no
                           {:irrigation-data (assoc irr-data row-no new-id)}
                           {:temp-irrigation-data new-id})))))
