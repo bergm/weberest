@@ -363,8 +363,11 @@
                                                                 (:plot/number plot) 
                                                                 (:plot/irrigation-area plot))
          
-         inputs (bc/create-input-seq plot weathers irrigation-donations-map 
-                                     (+ until 7) :spinkle-losses)
+         inputs (bc/create-input-seq| :plot plot 
+                                      :sorted-weather-map weathers
+                                      :irrigation-donations irrigation-donations-map 
+                                      :until-abs-day (+ until 7)
+                                      :irrigation-mode :spinkle-losses)
          inputs-7 (drop-last 7 inputs)
          prognosis-inputs (take-last 7 inputs)
          days (range (-> inputs first :abs-day) (+ until 7 1))
@@ -776,8 +779,11 @@
                                                weather-year*)
                                (Integer/parseInt until-julian-day))
          
-         inputs (bc/create-input-seq plot weathers irrigation-donations 
-                                     (+ until-julian-day* 7) :sprinkle-losses)
+         inputs (bc/create-input-seq| :plot plot 
+                                      :sorted-weather-map weathers
+                                      :irrigation-mode irrigation-donations 
+                                      :until-abs-day (+ until-julian-day* 7)
+                                      :irrigation-mode :sprinkle-losses)
          inputs-7 (drop-last 7 inputs)
          
          ;xxx (map (|-> (--< :abs-day :irrigation-amount) str) inputs-7)
@@ -822,7 +828,8 @@
       {:keys [until-day until-month 
               weather-year
               irrigation-data
-              #_dc-state-data]} :data :as all}]  
+              #_dc-state-data]} :data 
+      :as all}]  
   (let? [db (bd/current-db user-id)
          :else [:div#error "Fehler: Konnte keine Verbindung zur Datenbank herstellen!"]
          
@@ -849,8 +856,11 @@
                                           (Integer/parseInt until-month)
                                           weather-year*)
                  
-         inputs (bc/create-input-seq plot weathers irrigation-donations 
-                                     (+ until-julian-day 7) :sprinkle-losses)
+         inputs (bc/create-input-seq| :plot plot 
+                                      :sorted-weather-map weathers
+                                      :irrigation-donations irrigation-donations 
+                                      :until-abs-day (+ until-julian-day 7)
+                                      :irrigation-mode :sprinkle-losses)
          inputs-7 (drop-last 7 inputs)
                   
          ;xxx (map (|-> (--< :abs-day :irrigation-amount) str) inputs-7)
@@ -888,7 +898,67 @@
         ;which doesn't fit to the input list
         (csv/write-csv (bc/create-csv-output inputs (concat (rest sms-7*) (rest prognosis*)))
                        :delimiter ";")))    
-  
+
+(defn simulate-plot 
+  [& {:keys [user-id farm-id plot-id]
+      {:keys [until-day until-month 
+              weather-year
+              #_dc-state-data]} :data 
+      :as all}]  
+  (let? [db (bd/current-db user-id)
+         :else [:div#error "Fehler: Konnte keine Verbindung zur Datenbank herstellen!"]
+         
+         weather-year* (Integer/parseInt weather-year)
+         weathers (get bc/weather-map weather-year*) 
+         
+         plot (bc/db-read-plot db plot-id weather-year*)
+         :else [:div#error "Fehler: Konnte Schlag mit Nummer: " plot-id " nicht laden!"]
+         
+         until-julian-day (bu/date-to-doy (Integer/parseInt until-day)
+                                          (Integer/parseInt until-month)
+                                          weather-year*)
+         
+         inputs (bc/create-input-seq| :plot plot 
+                                      :sorted-weather-map weathers 
+                                      :until-abs-day (+ until-julian-day 7) 
+                                      :irrigation-mode :sprinkle-losses)
+         inputs-7 (drop-last 7 inputs)
+         
+         ;xxx (map (|-> (--< :abs-day :irrigation-amount) str) inputs-7)
+         ;_ (println xxx)
+         
+         prognosis-inputs (take-last 7 inputs)
+         days (range (-> inputs first :abs-day) (+ until-julian-day 7 1))
+         
+         sms-7* (bc/calc-soil-moistures* inputs-7 (:plot/initial-soil-moistures plot))
+         {soil-moistures-7 :soil-moistures 
+          :as sms-7} (last sms-7*) 
+         #_(bc/calc-soil-moistures inputs-7 (:plot/initial-soil-moistures plot))
+         
+         prognosis* (bc/calc-soil-moisture-prognosis* 7 prognosis-inputs soil-moistures-7)
+         prognosis (last prognosis*)
+         #_(bc/calc-soil-moisture-prognosis 7 prognosis-inputs soil-moistures-7)
+         
+         #_no-of-layers 
+         #_(-> sms-7* 
+               first 
+               :soil-moistures 
+               count)
+         
+         #_sms-layers 
+         #_(for [i (range no-of-layers)] 
+             (map (|-> :soil-moistures 
+                       (|* args-21->12 nth i)
+                       (|*kw bu/round :digits 5))
+                  (rest sms-7*)))
+         
+         ;sms-days (map :abs-day (rest sms-7*))
+         ]
+        
+        ;use rest on sms-7* etc. to skip the initial value prepended by reductions 
+        ;which doesn't fit to the input list
+        (csv/write-csv (bc/create-csv-output inputs (concat (rest sms-7*) (rest prognosis*)))
+                       :delimiter ";")))   
   
 (defn plots-layout [user-id farm-id]
   [:div "user-id: " user-id " all plots in farm " farm-id])
@@ -907,6 +977,24 @@
     (hf/submit-button "Schlag erstellen")))
 
 (defn rest-plot-ids [format user-id farm-id]
-  (condp = format
-        :edn ["zalf" "test1" "test2"]
-        :json ["zalf" "test1" "test2"]))
+  #_(let [db (-?>> user-id
+                 (str bd/datomic-base-uri ,,,)
+                 d/connect
+                 d/db)
+        
+        (d/q '[:find ?plot-e-id
+               :in $ ?farm-id
+               :where [?plot-e-id :plot/number ?plot-no]] 
+             
+                           (d/db datomic-connection) plot-no)
+        
+        
+        
+        ]
+    
+    
+    )
+  
+  (case format
+    :edn ["zalf"]
+    :json ["zalf"]))
