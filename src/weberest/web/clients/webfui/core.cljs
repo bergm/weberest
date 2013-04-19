@@ -95,6 +95,7 @@
       (apply create-irrigation-inputs nil (:temp-irrigation-data state))]
      
      [:input {:type "button" :mouse :calc-and-download :value "Berechnen & CSV-Downloaden"}]
+     [:input {:type "button" :mouse :sim-and-download :value "Simulieren & CSV-Downloaden"}]
      
      ]))
 
@@ -107,6 +108,16 @@
                                      "?until-day=" day "&until-month=" month
                                      "&weather-year=" (:weather-year state) 
                                      "&irrigation-data=" (prn-str (:irrigation-data state)))]
+                        (-> js/window
+                            (.open ,,, url)))))
+
+(wm/add-mouse-watch :sim-and-download [state first-element last-element]
+                    (when (wu/clicked first-element last-element)
+                      (let [[day month] (:until-day-month state)
+                            url (str "rest/farms/111/plots/" (:selected-plot-id state) ".out" 
+                                     ;"?format=csv"
+                                     "?until-day=" day "&until-month=" month
+                                     "&weather-year=" (:weather-year state))]
                         (-> js/window
                             (.open ,,, url)))))
 

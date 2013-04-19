@@ -10,16 +10,16 @@
   (apply comp (reverse args)))
 
 (def |-> "symbol/shortcut for rcomp (reverse compose) function"
-      rcomp)
+  rcomp)
 
 (def |<- "symbol/shortcut for comp (compose) function"
-      comp)
+  comp)
 
 (def --< "symbol/shortcut for juxt function" 
-     juxt)
+  juxt)
 
 (def |* "symbol/shortcut for partial function" 
-      partial)
+  partial)
 
 (defn partial-kw 
   "partial function which works with keyword (optional) arguments"
@@ -28,16 +28,16 @@
     (apply f (concat args kw-args))))
 
 (def |*kw "symbol/shortcut for partial-kw function" 
-      partial-kw)
+  partial-kw)
 
 (defn juxt* 
   "symbol for juxt and directly useable as a function with variable arguments  
-(at least be two)"
+  (at least be two)"
   [& rest] 
   ((apply juxt (butlast rest)) (last rest)))
 
 (def --<* "symbol/shortcut for juxt*"
-     juxt*)
+  juxt*)
 
 (defn args-21->12 
   "swap the two arguments before applying f to them"

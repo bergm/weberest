@@ -12,6 +12,8 @@
             [analemma.charts :as acharts]
             [analemma.svg :as asvg]
             [clojure 
+             [edn :as edn]
+             [pprint :as pp]
              [walk :as cw]
              [string :as cs]]
             [clojure.math.numeric-tower :as nt]
@@ -20,8 +22,7 @@
             [formative 
              [core :as f]
              [parse :as fp]]
-            [clojure-csv.core :as csv]
-            [clojure.edn :as cedn])
+            [clojure-csv.core :as csv])
   (:use [c2.core :only [unify]]
         [clojure.core.match :only [match]]
         [let-else :only [let?]] 
@@ -839,7 +840,7 @@
          plot (bc/db-read-plot db plot-id weather-year*)
          :else [:div#error "Fehler: Konnte Schlag mit Nummer: " plot-id " nicht laden!"]
                  
-         irrigation-donations (for [[day month amount] (cedn/read-string irrigation-data)]
+         irrigation-donations (for [[day month amount] (edn/read-string irrigation-data)]
                                 {:irrigation/abs-day (bu/date-to-doy day month weather-year*) 
                                  :irrigation/amount amount})
           
@@ -920,45 +921,28 @@
          
          inputs (bc/create-input-seq| :plot plot 
                                       :sorted-weather-map weathers 
-                                      :until-abs-day (+ until-julian-day 7) 
+                                      :until-abs-day until-julian-day #_(+ until-julian-day 7) 
                                       :irrigation-mode :sprinkle-losses)
-         inputs-7 (drop-last 7 inputs)
          
-         ;xxx (map (|-> (--< :abs-day :irrigation-amount) str) inputs-7)
+         ;xxx (map (|-> (--< :abs-day :irrigation-amount) str) inputs)
          ;_ (println xxx)
          
-         prognosis-inputs (take-last 7 inputs)
-         days (range (-> inputs first :abs-day) (+ until-julian-day 7 1))
+         days (range (-> inputs first :abs-day) (+ until-julian-day 1))
          
-         sms-7* (bc/calc-soil-moistures* inputs-7 (:plot/initial-soil-moistures plot))
-         {soil-moistures-7 :soil-moistures 
-          :as sms-7} (last sms-7*) 
+         _ (println days)
+         
+         sms* (bc/calculate-soil-moistures-by-auto-donations* inputs (:plot/initial-soil-moistures plot)
+                                                              (:plot/slope plot) (:plot/technology plot) 5)
+         {soil-moistures :soil-moistures 
+          :as sms} (last sms*) 
          #_(bc/calc-soil-moistures inputs-7 (:plot/initial-soil-moistures plot))
          
-         prognosis* (bc/calc-soil-moisture-prognosis* 7 prognosis-inputs soil-moistures-7)
-         prognosis (last prognosis*)
-         #_(bc/calc-soil-moisture-prognosis 7 prognosis-inputs soil-moistures-7)
-         
-         #_no-of-layers 
-         #_(-> sms-7* 
-               first 
-               :soil-moistures 
-               count)
-         
-         #_sms-layers 
-         #_(for [i (range no-of-layers)] 
-             (map (|-> :soil-moistures 
-                       (|* args-21->12 nth i)
-                       (|*kw bu/round :digits 5))
-                  (rest sms-7*)))
-         
-         ;sms-days (map :abs-day (rest sms-7*))
+         _ (map pp/pprint sms*)
          ]
         
         ;use rest on sms-7* etc. to skip the initial value prepended by reductions 
         ;which doesn't fit to the input list
-        (csv/write-csv (bc/create-csv-output inputs (concat (rest sms-7*) (rest prognosis*)))
-                       :delimiter ";")))   
+        (csv/write-csv (bc/create-csv-output inputs (rest sms*)) :delimiter ";")))   
   
 (defn plots-layout [user-id farm-id]
   [:div "user-id: " user-id " all plots in farm " farm-id])
