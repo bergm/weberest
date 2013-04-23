@@ -928,9 +928,7 @@
          ;_ (println xxx)
          
          days (range (-> inputs first :abs-day) (+ until-julian-day 1))
-         
-         _ (println days)
-         
+                  
          sms* (bc/calculate-soil-moistures-by-auto-donations* inputs (:plot/initial-soil-moistures plot)
                                                               (:plot/slope plot) (:plot/technology plot) 5)
          {soil-moistures :soil-moistures 
@@ -942,7 +940,7 @@
         
         ;use rest on sms-7* etc. to skip the initial value prepended by reductions 
         ;which doesn't fit to the input list
-        (csv/write-csv (bc/create-csv-output inputs (rest sms*)) :delimiter ";")))   
+        #_(csv/write-csv (bc/create-csv-output inputs (rest sms*)) :delimiter ";")))   
   
 (defn plots-layout [user-id farm-id]
   [:div "user-id: " user-id " all plots in farm " farm-id])

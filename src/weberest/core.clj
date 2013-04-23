@@ -516,7 +516,7 @@ fc, pwp [mm/cm] -> [mm/cm]"
          :else nil
          
          [plot plot-yv] (map (partial bd/get-entity db) [plot-e-id yearly-values-e-id])
-         
+                  
          fcs-cm (->> (:plot/field-capacities plot)
                      (bd/create-map-from-entities :soil/upper-boundary-depth 
                                                   :soil/field-capacity 
@@ -533,6 +533,7 @@ fc, pwp [mm/cm] -> [mm/cm]"
          pwps (->> pwps-cm
                    (aggregate-layers + *layer-sizes* ,,,))
          
+         _ (pp/pprint (:plot/initial-sm-unit plot-yv))
          sms (->> (:plot/initial-soil-moistures plot-yv) 
                   (bd/create-map-from-entities :soil/upper-boundary-depth 
                                                :soil/soil-moisture 
@@ -540,6 +541,7 @@ fc, pwp [mm/cm] -> [mm/cm]"
                   (user-input-soil-moisture-to-cm-layers
                    fcs-cm pwps-cm (->> (:plot/initial-sm-unit plot-yv)
                                        remove-namespace-from-keyword))
+                  (#(do (pp/pprint %) %) ,,,)
                   (aggregate-layers + *layer-sizes* ,,,))
          
          lwc (lambda-without-correction 
@@ -562,6 +564,7 @@ fc, pwp [mm/cm] -> [mm/cm]"
                                               ,,,))]
         
         (-> (entity->map db plot)
+            (dissoc ,,, :db/id :plot/yearly-values)
             (merge ,,, (dissoc crop-yv* :db/id))
             (assoc ,,, 
               :plot/initial-soil-moistures sms
@@ -929,6 +932,7 @@ shallower extraction depth will be used"
     
         {:abs-day abs-day
          :rel-dc-day rel-dc-day
+         :irrigation-amount irrigation-amount
          :aet aet
          :pet pet*
          :aet7pet aet7pet
@@ -951,20 +955,17 @@ shallower extraction depth will be used"
                              :crop-instance/dc-assertions
                              (sort-by :assertion/at-abs-day ,,,)) 
          :is-not empty?
-         
          ;_ (println dc-assertions*)
          
          sorted-dc-to-rel-dc-days (->> crop-instance 
                                        :crop-instance/template 
                                        :crop/dc-to-rel-dc-days
                                        (into (sorted-map) ,,,))
-         
          ;_ (println sorted-dc-to-rel-dc-days)
          
          {dc* :assertion/assert-dc
           abs-dc-day* :assertion/abs-assert-dc-day} (first dc-assertions*)
          :else nil
-         
          ;_ (println "dc-to-rel-dc-days: " dc-to-rel-dc-days \newline)
          
          rel-dc-day* (interpolated-value sorted-dc-to-rel-dc-days dc*)
@@ -974,23 +975,49 @@ shallower extraction depth will be used"
          (fmap (fn [rel-dc-day]
                  {:abs-dc-day (+ abs-dc-day* (- rel-dc-day rel-dc-day*))
                   :rel-dc-day rel-dc-day})
-               sorted-dc-to-rel-dc-days*)]
+               sorted-dc-to-rel-dc-days*)
+         _ (println "initial: ")
+         _ (pp/pprint sorted-initial-dc-to-abs+rel-dc-day)
+         ]
         
-        ;_ (println "initial: " sorted-initial-dc-to-abs+rel-dc-day \newline)
         
-        (reduce (fn [m {dc* :assertion/assert-dc
-                        abs-dc-day* :assertion/abs-assert-dc-day}]
-                  (assoc m dc* {:abs-dc-day abs-dc-day*
-                                :rel-dc-day (if-let [{:keys [abs-dc-day rel-dc-day]} 
-                                                     (or (get m dc*)
-                                                         (->> (adjacent-kv-pairs m dc*)
-                                                              (map second ,,,)
-                                                              ;now order
-                                                              (into #{} ,,,)
-                                                              ;get lowest day
-                                                              first))] 
-                                              (+ rel-dc-day 
-                                                 (- abs-dc-day* abs-dc-day)))}))
+        (reduce (fn [sorted-dc-to-days {dc* :assertion/assert-dc
+                                        abs-dc-day* :assertion/abs-assert-dc-day}]
+                  (let [;get a new days pair, either from map (should be the only case) or interpolate new
+                        {:keys [abs-dc-day rel-dc-day]} (or (get sorted-dc-to-days dc*)
+                                                            (->> (adjacent-kv-pairs sorted-dc-to-days dc*)
+                                                                 (map second ,,,)
+                                                                 ;now order
+                                                                 (into #{} ,,,)
+                                                                 ;get lowest day
+                                                                 first))
+                        
+                        ;that many days the assertion shifts the reported dc state
+                        new-delta (- abs-dc-day* abs-dc-day)
+                        _ (println "dc*: " dc* " abs-dc-day*: " abs-dc-day* " new-delta: " new-delta)
+                        
+                        ;directly store the asserted dc state, because that's what the user reported
+                        sorted-dc-to-days* (assoc sorted-dc-to-days dc* {:abs-dc-day abs-dc-day*
+                                                                         :rel-dc-day (+ rel-dc-day new-delta)})
+                        
+                        ;apply the new delta to all future dc-to-days pairs, because the future 
+                        ;(regarding the asserted abs-day of an dc state) represents just average possible
+                        ;time ranges for the dcs
+                        ;also if a past dc (regarding the assert dc*) has due to the new delta
+                        ;a larger abs-dc-day, this mapping will be removed
+                        sorted-dc-to-days** (->> sorted-dc-to-days*
+                                                 (map (fn [[dc {:keys [abs-dc-day rel-dc-day]} :as key-value]]
+                                                        (if (> abs-dc-day abs-dc-day*)
+                                                          (when (>= dc dc*)
+                                                            [dc {:abs-dc-day (+ abs-dc-day new-delta)
+                                                                 :rel-dc-day (+ rel-dc-day new-delta)}])
+                                                          key-value))
+                                                      ,,,)
+                                                 (into (sorted-map) ,,,))
+                        _ (println "sorted-dc-to-days**")
+                        _ (pp/pprint sorted-dc-to-days**)
+                        ]
+                    sorted-dc-to-days**))
                 sorted-initial-dc-to-abs+rel-dc-day (rest dc-assertions*))))
 
 (defn dc-to-abs+rel-dc-day-from-plot-dc-assertions 
@@ -1130,9 +1157,13 @@ shallower extraction depth will be used"
   (let [abs-dc-day-to-crop-instance-data  
         (->> (:plot/crop-instances plot)
              dc-to-abs+rel-dc-day-from-plot-dc-assertions
+             (#(do (pp/pprint %) %) ,,,)
              index-localized-crop-instance-curves-by-abs-dc-day
              merge-abs-dc-day-to-crop-data-maps
-             calculate-final-abs-dc-to-crop-data-map)]
+             calculate-final-abs-dc-to-crop-data-map)
+        
+        ;_ (pp/pprint abs-dc-day-to-crop-instance-data)
+        ]
     (for [abs-day (range 1 (-> sorted-weather-map rseq ffirst inc))
           :let [weather (sorted-weather-map abs-day)]
           :while weather]
@@ -1449,16 +1480,17 @@ the technological restrictions"
      :else 
      {:state :optimal-soil-moisture})))
 
-(defnk calculate-soil-moistures-by-auto-donations
+(defnk calculate-soil-moistures-by-auto-donations**
   "calculate soil-moistures but apply automatically the recommended donations"
   [inputs initial-soil-moistures slope technology prognosis-days :red-fn reduce]
   (red-fn (fn [{:keys [days-to-go current-sm]} [f-input :as prognosis-inputs]]
-            (println "abs-day: " (:abs-day f-input) " input-count: " (count prognosis-inputs))
             (let [{:keys [days-to-go* donation]} 
                   (if (zero? days-to-go)
                     (let [{:keys [state donation] :as rec} 
-                          (calc-recommendation prognosis-days slope technology 
-                                               prognosis-inputs (:soil-moistures current-sm))]
+                          (calc-recommendation (count prognosis-inputs) slope technology 
+                                               prognosis-inputs (:soil-moistures current-sm))
+                          _ (println "abs-day: " (:abs-day f-input) " state: " state " donation: " donation)
+                          ]
                       (case state
                         (:optimal-soil-moisture 
                          :outside-of-irrigation-period
@@ -1476,7 +1508,10 @@ the technological restrictions"
                          :optimal-donation) {:days-to-go* prognosis-days 
                                              :donation donation}))
                     {:days-to-go* days-to-go 
-                     :donation 0})]
+                     :donation 0})
+                  
+                  _ (println "days-to-go*: " days-to-go* " donation: " donation)
+                  ]
               {:days-to-go (dec days-to-go*) 
                :current-sm (calc-soil-moisture current-sm (assoc f-input :irrigation-amount donation))}))
           {:days-to-go 0 
@@ -1485,11 +1520,19 @@ the technological restrictions"
                         :soil-moistures initial-soil-moistures}} 
           (partition-all prognosis-days 1 inputs)))
 
+(defnk calculate-soil-moistures-by-auto-donations
+  [inputs initial-soil-moistures slope technology prognosis-days]
+  (->> (calculate-soil-moistures-by-auto-donations** inputs initial-soil-moistures slope technology
+                                                     prognosis-days :red-fn reduce)
+       :current-sm))
+
 (defnk calculate-soil-moistures-by-auto-donations*
   "calculate soil-moistures but apply automatically the recommended donations"
   [inputs initial-soil-moistures slope technology prognosis-days]
-  (calculate-soil-moistures-by-auto-donations inputs initial-soil-moistures slope technology
-                                              prognosis-days :red-fn reductions))
+  (->> (calculate-soil-moistures-by-auto-donations** inputs initial-soil-moistures slope technology
+                                                     prognosis-days :red-fn reductions)
+       rest
+       (map :current-sm ,,,)))
                 
 (defnk calc-soil-moistures* 
   "calculate the soil-moistures for the given inputs and initial soil-moisture returning
@@ -1547,13 +1590,14 @@ the technological restrictions"
                      "CLJ mm 200cm"]
         
         body-lines (map (fn [input rres]
+                          #_(println rres)
                           (map str [(:abs-day input) 
                                     (ctf/unparse (ctf/formatter "dd.MM.") 
                                                  (bu/doy-to-date (:abs-day input)))
                                     (:rel-dc-day input)
                                     (:precipitation input)
                                     (- (:evaporation input))
-                                    (:irrigation-amount input)
+                                    (:irrigation-amount rres #_input)
                                     (:pet rres)
                                     (:aet rres)
                                     (:aet7pet rres)

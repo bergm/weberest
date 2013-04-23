@@ -3,7 +3,8 @@
             [webfui.utilities :as wu]
             [goog.net.XhrIo :as xhr]
             [cljs.reader :as cljsr]
-            [clojure.string :as string])  
+            [clojure.string :as string]
+            [domina :as dom])  
   (:require-macros [webfui.framework.macros :as wm]))
 
 (declare app-state)
@@ -19,11 +20,12 @@
 
 (def initial-state {:plot-ids []
                     :selected-plot-id "zalf"
-                    :until-day-month [1 8]
+                    :until-day-month [10 10]
                     :weather-year 1993
                     :csv-separator ";"
                     :irrigation-data [[1 4 22] [2 5 10] [11 7 30]]
-                    :temp-irrigation-data [nil nil nil]})
+                    :temp-irrigation-data [nil nil nil]
+                    :simulate? false})
 
 (def app-state (atom initial-state))
 
@@ -73,14 +75,14 @@
     [:form {:name "test-data-form"}
      [:fieldset 
       [:legend "Schlag Id"] 
-      [:select
+      [:select 
        (for [pid (:plot-ids state)]
          (create-option pid (:selected-plot-id state)))]]
      
      [:fieldset
       [:legend "Rechnen bis Datum"]
-      (create-number-input :placeholder "Tag" :value until-day)
-      (create-number-input :placeholder "Monat" :value until-month)]
+      (create-number-input :placeholder "Tag" :value until-day :watch :until-day)
+      (create-number-input :placeholder "Monat" :value until-month :watch :until-month)]
      
      [:fieldset
       [:legend "Wetterdaten für Jahr"]
@@ -94,6 +96,12 @@
         (create-irrigation-inputs row-no day month amount))
       (apply create-irrigation-inputs nil (:temp-irrigation-data state))]
      
+     #_[:fieldset
+      [:legend "Simulation"]
+      [:input {:id "sim" :type "checkbox" :watch :simulation}] 
+      #_[:input {:type "text" :watch :simulation}]
+      #_[:label {:for "sim"} " Beregnungsgaben irgnorieren und Empfehlungen automatisch geben!"]]
+     
      [:input {:type "button" :mouse :calc-and-download :value "Berechnen & CSV-Downloaden"}]
      [:input {:type "button" :mouse :sim-and-download :value "Simulieren & CSV-Downloaden"}]
      
@@ -103,10 +111,11 @@
 (wm/add-mouse-watch :calc-and-download [state first-element last-element]
                     (when (wu/clicked first-element last-element)
                       (let [[day month] (:until-day-month state)
+                            wy (dom/by-id "weather-year")
                             url (str "rest/farms/111/plots/" (:selected-plot-id state) ".csv" 
                                      ;"?format=csv"
-                                     "?until-day=" day "&until-month=" month
-                                     "&weather-year=" (:weather-year state) 
+                                     "?sim=false&until-day=" day "&until-month=" month
+                                     "&weather-year=" (js/parseInt (.-value (.item (.-options wy) (.-selectedIndex wy)))) #_(:weather-year state) 
                                      "&irrigation-data=" (prn-str (:irrigation-data state)))]
                         (-> js/window
                             (.open ,,, url)))))
@@ -114,10 +123,11 @@
 (wm/add-mouse-watch :sim-and-download [state first-element last-element]
                     (when (wu/clicked first-element last-element)
                       (let [[day month] (:until-day-month state)
-                            url (str "rest/farms/111/plots/" (:selected-plot-id state) ".out" 
+                            wy (dom/by-id "weather-year")
+                            url (str "rest/farms/111/plots/" (:selected-plot-id state) ".csv" 
                                      ;"?format=csv"
-                                     "?until-day=" day "&until-month=" month
-                                     "&weather-year=" (:weather-year state))]
+                                     "?sim=true&until-day=" day "&until-month=" month
+                                     "&weather-year=" (js/parseInt (.-value (.item (.-options wy) (.-selectedIndex wy))))) #_(:weather-year state)]
                         (-> js/window
                             (.open ,,, url)))))
 
@@ -135,7 +145,8 @@
                            :temp-irrigation-data [nil nil nil]}))))
 
 (wm/add-dom-watch :irrigation-data-changed [state new-element]
-                  (let [{:keys [data-id value data-row-no]} (second new-element)
+                  (js/alert "irrigation")
+                  #_(let [{:keys [data-id value data-row-no]} (second new-element)
                         row-no (when (not (string/blank? data-row-no)) 
                                  (js/parseInt data-row-no))
                         irr-data (:irrigation-data state)
@@ -152,64 +163,13 @@
                           {:irrigation-data (assoc irr-data row-no new-id)}
                           {:temp-irrigation-data new-id})))))
 
-#_(add-mouse-watch :num [state first-element last-element]
-                   (when (clicked first-element last-element)
-                   (let [{:keys [amount amount-decimal]} state
-                         digit (js/parseInt (name (get-attribute first-element :id)))]
-                     (if amount-decimal
-                       {:amount (+ amount (/ digit 10 (apply * (repeat amount-decimal 10))))
-                        :amount-decimal (inc amount-decimal)}
-                       {:amount (+ (* amount 10) digit)}))))
+(wm/add-dom-watch :until-day [state new-element]
+                  (let [{:keys [value]} (second new-element)]
+                    {:until-day-month [(js/parseInt value) (-> state :until-day-month second)]}))
 
-#_(add-mouse-watch :op [state first-element last-element]
-                 (when (clicked first-element last-element)
-                   (let [{:keys [amount operation accumulator]} state]
-                     {:amount nil
-                      :amount-decimal nil
-                      :accumulator (if (and amount operation)
-                                     ((operations operation) accumulator amount)
-                                     (or amount accumulator))
-                      :operation (get-attribute first-element :id)})))
-
-#_(add-mouse-watch :period [state first-element last-element]
-                 (when (clicked first-element last-element)
-                   (when-not (:amount-decimal state)
-                     {:amount-decimal 0})))
-
-#_(add-mouse-watch :ac [state first-element last-element]
-                 (when (clicked first-element last-element)
-                   (assoc initial-state :memory (:memory state))))
-
-#_(add-mouse-watch :ms [state first-element last-element]
-                 (when (clicked first-element last-element)
-                   (let [{:keys [amount accumulator]} state]
-                     {:memory (or amount accumulator)})))
-
-#_(add-mouse-watch :mr [state first-element last-element]
-                 (when (clicked first-element last-element)
-                   (let [{:keys [memory]} state]
-                     {:amount memory})))
-
-
-
-#_(defn memory-loaded [text]
-  (let [memory (read-string text)]
-    (swap! my-state assoc :memory memory :amount memory)))
-
-#_(defn memory-saved []
-  (swap! my-state assoc :memory :unknown))
-
-#_(add-watch my-state :my-watch
-           (fn [_ _ old new]
-             (let [{:keys [amount memory]} new]
-               (when (= amount :unknown)
-                 (if (= (:amount old) :unknown)
-                   (reset! my-state old)
-                   (send old :get "memory" memory-loaded)))
-               (when (not= memory :unknown)
-                 (if (not= (:memory old) :unknown)
-                   (reset! my-state old)
-                   (send old :put (str "memory/" memory) memory-saved))))))
+(wm/add-dom-watch :until-month [state new-element]
+                  (let [{:keys [value]} (second new-element)]
+                    {:until-day-month [(-> state :until-day-month second) (js/parseInt value) ]}))
 
 (wf/launch-app app-state render-all)
 

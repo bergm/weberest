@@ -109,15 +109,18 @@
              (rur/content-type ,,, "application/edn")))
    
     (GET "/:plot-id-format" [plot-id-format format & data]
-         (let [[plot-id format*] (split-plot-id-format plot-id-format)]
-           (case (or format* format)
-             "out" (-> (plot/simulate-plot :user-id "berest" #_(user-id req) :farm-id farm-id :plot-id "zalf" #_plot-id :data data)
-                       rur/response
-                       (rur/content-type ,,, "text/text"))
-             "csv" (-> (plot/calc-plot :user-id "berest" #_(user-id req) :farm-id farm-id :plot-id "zalf" #_plot-id :data data)
-                       rur/response
-                       (rur/content-type ,,, "text/csv"))
-             (rur/not-found (str "Format '" format "' is not supported!")))))
+         (let [[plot-id format*] (split-plot-id-format plot-id-format)
+               simulate? (= (:sim data) "true")]
+           (if simulate? 
+             (-> (plot/simulate-plot :user-id "berest" #_(user-id req) :farm-id farm-id :plot-id "zalf" #_plot-id :data data)
+                 rur/response
+                 (rur/content-type ,,, "text/csv"))
+             (case (or format* format)
+               "csv" (-> (plot/calc-plot :user-id "berest" #_(user-id req) :farm-id farm-id :plot-id "zalf" #_plot-id :data data)
+                         rur/response
+                         (rur/content-type ,,, "text/csv"))
+               (rur/not-found (str "Format '" format "' is not supported!")))  
+             )))
      
     
    #_(GET "/new" []
