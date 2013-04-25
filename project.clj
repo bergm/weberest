@@ -32,6 +32,7 @@
                  [formative "0.3.2"]
                  [webfui "0.2.1"]
                  [ring-edn "0.1.0"]
+                 [com.taoensso/timbre "1.6.0"]
                  ]
   :exclusions [org.mortbay.jetty/servlet-api]              
   :plugins [[lein-cljsbuild "0.3.0"]]

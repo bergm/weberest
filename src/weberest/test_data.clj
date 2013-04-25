@@ -223,7 +223,7 @@
         dc-to-name (bd/create-entities :kv/dc :kv/name 
                                        [21 "Bestockungsbeginn", 31 "Schossbeginn", 51 "Ährenschieben", 61 "Blüte", 
                                         75 "Milchreife", 92 "Todreife"])
-        rel-day-to-cover-degree (bd/create-entities :kv/dc :kv/cover-degree 
+        rel-day-to-cover-degree (bd/create-entities :kv/rel-dc-day :kv/cover-degree 
                                                     [30 0.6, 115 0.8, 125 1.0])
         rel-day-to-extraction-depth (bd/create-entities :kv/rel-dc-day :kv/extraction-depth 
                                                         [90 60, 120 80, 150 120, 180 180]) 
@@ -452,7 +452,7 @@
                                         [30 80.0, 60 90.0, 90 100.0, 150 100.0])
         plot* {:db/id (bd/new-entity-id)
                :plot/year year
-               :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 13 3 year)
+               :plot/abs-day-of-initial-soil-moisture-measurement (bu/date-to-doy 31 3 year)
                :plot/initial-soil-moistures (bd/get-entity-ids initial-sms)
                :plot/initial-sm-unit :soil-moisture-unit/pFK 
                :plot/technology (bd/get-entity-id technology)

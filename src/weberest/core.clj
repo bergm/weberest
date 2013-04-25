@@ -3,7 +3,7 @@
             [clojure.java.io :as cjio]
             clojure.set
             [incanter.core :as ic]
-            [clojure.string :as cstr]
+            [clojure.string :as str]
             [clojure.pprint :as pp]
             [clj-time 
              [core :as ctc]
@@ -15,12 +15,21 @@
             [clojure.tools.macro :as ctm]
             [datomic.api :as d]
             #_[clojure.algo.generic.arithmetic :as caga]
+            
             )
   (:use [weberest.helper :only [defnk defnk- |* |-> |<- --< --<*] :as bh]
         [let-else :only [let?]]
         [clojure.core.incubator :only [-?>]]
         [clojure.algo.generic.functor :only [fmap]]
-        clojure.test))
+        clojure.test
+        [taoensso.timbre :as timbre :only [trace debug info warn error fatal spy]]))
+
+(timbre/set-level! :info)
+(timbre/set-config! [:timestamp-pattern] ""#_"yyyy-MMM-dd HH:mm:ss ZZ")
+(timbre/set-config! [:timestamp-locale] (java.util.Locale/GERMAN))
+(timbre/set-config! [:prefix-fn] (fn [{:keys [level timestamp hostname ns]}]
+                                   (str #_timestamp #_" " #_hostname #_" " (-> level name str/upper-case)
+                                        " [" ns "]")))
 
 ;(frinj-init!)
 
@@ -40,7 +49,7 @@
   [fc pwp percent-value]
   (+ pwp (* 1/100 percent-value (- fc pwp))))
 
-(defn mm7dm->pNFK 
+(defn mm7x->pNFK 
   "fc, pwp, mm-value [mm/x] -> [% NFK]" 
   [fc pwp sm-value] 
   (/ (- sm-value pwp) (* (- fc pwp) 100)))
@@ -430,30 +439,41 @@ fakt:=1 + 0.77 * SIN(0.01571 * (t - 166));"}
 ;type IrrigationMode = | SprinkleLosses | NoSprinkleLosses
 ;:Irrigation-mode :Sprinkle-losses :No-sprinkle-losses
 
-(defn user-input-fc-or-pwp-to-cm-layers 
+(defnk user-input-fc-or-pwp-to-cm-layers 
   "convert the user input field capacity or permanent wilting point to cm layers
-e.g. {30 17.7, 60 13.7, 150 15.7}
-user-input-soil-data [volP | mm/dm] -> [mm/cm]"
-  [user-input-soil-data]
-  (->> user-input-soil-data
-    sorted-unzip-map 
-    (expand-layers (max-soil-depth) ,,,)
-    (map (|-> volp->mm7dm mm7dm->mm7cm) ,,,)))
+  e.g. {30 17.7, 60 13.7, 150 15.7}
+  user-input-soil-data [volP (= mm/dm) | pFK | pNFK | mm] -> [mm/cm]"
+  [user-input-soil-data :unit :volP]
+  (let [[expand-layers*
+         x->mm7cm*] (case unit
+                      (:volP :pFK :pNFK) [(|* expand-layers (max-soil-depth))
+                                          (|-> volp->mm7dm mm7dm->mm7cm)]
+                      :mm [#(expand-layers (max-soil-depth) % :expand-fn /)
+                           identity])]
+    (->> user-input-soil-data
+         sorted-unzip-map 
+         expand-layers*
+         (map x->mm7cm* ,,,))))
 
 (defn user-input-soil-moisture-to-cm-layers
   "convert the user input soil-moisture into the internally defined layer structure
-e.g. {30 3.4, 60 2.9, 150 3.8} :pFK
-fc, pwp [mm/cm] -> [mm/cm]"
+  e.g. {30 3.4, 60 2.9, 150 3.8} :pFK
+  fc, pwp [mm/cm], soil-moisture-unit [pFK | pNFK | volP | mm] -> [mm/cm]"
   [fcs-cm pwps-cm soil-moisture-unit user-input-soil-moistures]
-  (->> user-input-soil-moistures
-    sorted-unzip-map 
-    (expand-layers (max-soil-depth) ,,,)
-    (map (soil-moisture-unit {:pFK #(pFK->mm7x %1 %3) 
-                              :pNFK pNFK->mm7x  
-                              :volP #(-> %3 
-                                       volp->mm7dm 
-                                       mm7dm->mm7cm)})
-         fcs-cm pwps-cm ,,,)))
+  (let [[expand-layers*
+         x->mm7cm*] (case soil-moisture-unit
+                      (:volP :pFK :pNFK) [(|* expand-layers (max-soil-depth))
+                                          (soil-moisture-unit {:pFK #(pFK->mm7x %1 %3) 
+                                                               :pNFK pNFK->mm7x  
+                                                               :volP #(-> %3 
+                                                                          volp->mm7dm 
+                                                                          mm7dm->mm7cm)})]
+                      :mm [#(expand-layers (max-soil-depth) % :expand-fn /)
+                           (fn [_ _ sm] sm)])]
+    (->> user-input-soil-moistures
+         sorted-unzip-map 
+         expand-layers*
+         (map x->mm7cm* fcs-cm pwps-cm ,,,))))
 
 (defn db-crop-data-map->crop
   "transform the crop data from datomic to crop map"
@@ -533,7 +553,6 @@ fc, pwp [mm/cm] -> [mm/cm]"
          pwps (->> pwps-cm
                    (aggregate-layers + *layer-sizes* ,,,))
          
-         _ (pp/pprint (:plot/initial-sm-unit plot-yv))
          sms (->> (:plot/initial-soil-moistures plot-yv) 
                   (bd/create-map-from-entities :soil/upper-boundary-depth 
                                                :soil/soil-moisture 
@@ -541,7 +560,6 @@ fc, pwp [mm/cm] -> [mm/cm]"
                   (user-input-soil-moisture-to-cm-layers
                    fcs-cm pwps-cm (->> (:plot/initial-sm-unit plot-yv)
                                        remove-namespace-from-keyword))
-                  (#(do (pp/pprint %) %) ,,,)
                   (aggregate-layers + *layer-sizes* ,,,))
          
          lwc (lambda-without-correction 
@@ -551,8 +569,8 @@ fc, pwp [mm/cm] -> [mm/cm]"
          
          ;read a fallow "crop" to be used with this plot
          fallow (db-read-crop db 0 :cultivation-type 1 :usage 0)
-         
-         crop-yv* (->> plot-yv
+                  
+         plot-yv* (->> plot-yv
                        (entity->map db ,,,)
                        (clojure.walk/postwalk (fn [item] 
                                                 (if (vector? item)
@@ -565,7 +583,7 @@ fc, pwp [mm/cm] -> [mm/cm]"
         
         (-> (entity->map db plot)
             (dissoc ,,, :db/id :plot/yearly-values)
-            (merge ,,, (dissoc crop-yv* :db/id))
+            (merge ,,, (dissoc plot-yv* :db/id))
             (assoc ,,, 
               :plot/initial-soil-moistures sms
               :plot/field-capacities fcs
@@ -976,25 +994,21 @@ shallower extraction depth will be used"
                  {:abs-dc-day (+ abs-dc-day* (- rel-dc-day rel-dc-day*))
                   :rel-dc-day rel-dc-day})
                sorted-dc-to-rel-dc-days*)
-         _ (println "initial: ")
-         _ (pp/pprint sorted-initial-dc-to-abs+rel-dc-day)
+         ;_ (println "initial: ")
+         ;_ (pp/pprint sorted-initial-dc-to-abs+rel-dc-day)
          ]
-        
-        
+                
         (reduce (fn [sorted-dc-to-days {dc* :assertion/assert-dc
                                         abs-dc-day* :assertion/abs-assert-dc-day}]
                   (let [;get a new days pair, either from map (should be the only case) or interpolate new
-                        {:keys [abs-dc-day rel-dc-day]} (or (get sorted-dc-to-days dc*)
-                                                            (->> (adjacent-kv-pairs sorted-dc-to-days dc*)
-                                                                 (map second ,,,)
-                                                                 ;now order
-                                                                 (into #{} ,,,)
-                                                                 ;get lowest day
-                                                                 first))
+                        {:keys [abs-dc-day rel-dc-day]} (fmap (|-> bu/round int) 
+                                                              (or (get sorted-dc-to-days dc*)
+                                                                  (interpolated-value sorted-dc-to-days dc*)))
+                        ;_ (println "abs-dc-day: " abs-dc-day " rel-dc-day: " rel-dc-day)
                         
                         ;that many days the assertion shifts the reported dc state
                         new-delta (- abs-dc-day* abs-dc-day)
-                        _ (println "dc*: " dc* " abs-dc-day*: " abs-dc-day* " new-delta: " new-delta)
+                        ;_ (println "dc*: " dc* " abs-dc-day*: " abs-dc-day* " new-delta: " new-delta)
                         
                         ;directly store the asserted dc state, because that's what the user reported
                         sorted-dc-to-days* (assoc sorted-dc-to-days dc* {:abs-dc-day abs-dc-day*
@@ -1007,15 +1021,19 @@ shallower extraction depth will be used"
                         ;a larger abs-dc-day, this mapping will be removed
                         sorted-dc-to-days** (->> sorted-dc-to-days*
                                                  (map (fn [[dc {:keys [abs-dc-day rel-dc-day]} :as key-value]]
-                                                        (if (> abs-dc-day abs-dc-day*)
-                                                          (when (>= dc dc*)
-                                                            [dc {:abs-dc-day (+ abs-dc-day new-delta)
-                                                                 :rel-dc-day (+ rel-dc-day new-delta)}])
-                                                          key-value))
+                                                        ;move everyting after assert dc* by new-delta days
+                                                        (if (> dc dc*)
+                                                          [dc {:abs-dc-day (+ abs-dc-day new-delta)
+                                                               :rel-dc-day (+ rel-dc-day new-delta)}]
+                                                          ;if there's an assertion before that has due to new-delta
+                                                          ;a larger abs-dc-day than the assert abs-dc-day*
+                                                          ;remove (skip) this assertion
+                                                          (when (<= abs-dc-day abs-dc-day*) 
+                                                            key-value)))
                                                       ,,,)
                                                  (into (sorted-map) ,,,))
-                        _ (println "sorted-dc-to-days**")
-                        _ (pp/pprint sorted-dc-to-days**)
+                        ;_ (println "sorted-dc-to-days**")
+                        ;_ (pp/pprint sorted-dc-to-days**)
                         ]
                     sorted-dc-to-days**))
                 sorted-initial-dc-to-abs+rel-dc-day (rest dc-assertions*))))
@@ -1157,13 +1175,9 @@ shallower extraction depth will be used"
   (let [abs-dc-day-to-crop-instance-data  
         (->> (:plot/crop-instances plot)
              dc-to-abs+rel-dc-day-from-plot-dc-assertions
-             (#(do (pp/pprint %) %) ,,,)
              index-localized-crop-instance-curves-by-abs-dc-day
              merge-abs-dc-day-to-crop-data-maps
-             calculate-final-abs-dc-to-crop-data-map)
-        
-        ;_ (pp/pprint abs-dc-day-to-crop-instance-data)
-        ]
+             calculate-final-abs-dc-to-crop-data-map)]
     (for [abs-day (range 1 (-> sorted-weather-map rseq ffirst inc))
           :let [weather (sorted-weather-map abs-day)]
           :while weather]
@@ -1172,7 +1186,7 @@ shallower extraction depth will be used"
             
             prev-day-cover-degree (interpolated-value (:crop/rel-dc-day-to-cover-degrees crop) 
                                                       (dec rel-dc-day))
-            
+           
             cover-degree (interpolated-value (:crop/rel-dc-day-to-cover-degrees crop) rel-dc-day)] 
         
         {:abs-day abs-day
@@ -1210,8 +1224,8 @@ shallower extraction depth will be used"
                        sorted-weather-map 
                        irrigation-donations
                        irrigation-mode)
-    (drop (dec (:plot/abs-day-of-initial-soil-moisture-measurement plot)) ,,,)
-    (take-while #(<= (:abs-day %) until-abs-day) ,,,)))
+       (drop (dec (:plot/abs-day-of-initial-soil-moisture-measurement plot)) ,,,)
+       (take-while #(<= (:abs-day %) until-abs-day) ,,,)))
 
 (defnk calc-soil-moistures* 
   "calculate the soil-moistures for the given inputs and initial soil-moisture returning
@@ -1290,15 +1304,28 @@ shallower extraction depth will be used"
     
 (defn calc-donation-amount
   "calculate the irrigation amount to be given and the according recommendation text" 
-  [qu-target {:keys [opt-donation step-size max-donation min-donation cycle-days] :as t+b}
+  [qu-prognosis-target 
+   {:keys [min-boundary-donation opt-boundary-donation max-boundary-donation 
+           step-size cycle-days]}
    inputs soil-moistures]
   (let [input (first inputs)
-        irrigation-days (max 4 (min cycle-days 14))
-        qu-eff (- qu-target (-> input :crop :crop/effectivity-quotient))
+        
+        ;look that many days into the future
+        ;should be as many days as cycle days to the technological requirements
+        ;but at least 4 days to reflect a valid prognosis time frame 
+        ;(general prognosis time frame is 5 days)
+        irrigation-prognosis-days (max 4 (min cycle-days 14))
+        
+        ;a reduced quotient depending on crop specifics to have a lower border
+        ;because water stress doesn't impact evey crop the same at the 
+        ;standard (per crop) target quotient
+        qu-eff (- qu-prognosis-target (-> input :crop :crop/effectivity-quotient))
                 
+        ;function to calculate the soil-moistures by applying donation amount x at the first day
+        ;of a period of length irrigation-prognosis-days
         calc-sms-with-donation (fn [irrigation-amount]
                                  (->> inputs
-                                      (take irrigation-days ,,,)
+                                      (take irrigation-prognosis-days ,,,)
                                       ;set irrigation amount just for first day (of all the irrigation days)
                                       ((fn [[f-input & rest-input]] (cons (assoc f-input :irrigation-amount irrigation-amount) rest-input)) ,,,)
                                       ;set sm-prognosis true for all inputs
@@ -1310,13 +1337,14 @@ shallower extraction depth will be used"
                                                :soil-moistures soil-moistures}
                                               ,,,)
                                       ;get the average of the irrigation days
-                                      (average-prognosis-result irrigation-days ,,,)))
+                                      (average-prognosis-result irrigation-prognosis-days ,,,)))
+        
         ;calculate soil-moisture in given future time without any irrigation as base value
         {qu-0-current :qu-avg-current
          qu-0-target :qu-avg-target
          :as qu-avg} (calc-sms-with-donation 0)
         
-        ;_ (println "input: " input " irr-days: " irrigation-days " qu-eff: " qu-eff " qu-avg: " qu-avg)
+        _ (debug "irr-days: " irrigation-prognosis-days " qu-eff: " qu-eff " qu-0-current: " qu-0-current " qu-0-target: " qu-0-target)
         
         ]
     (if (< qu-0-current qu-0-target)
@@ -1328,20 +1356,30 @@ shallower extraction depth will be used"
         (let [make-donation #(hash-map :irrigation/abs-day (:abs-day input) #_(inc (:abs-day input)) 
                                        :irrigation/amount %)
               
-              donations- (take-while #(<= min-donation %) (iterate #(- % step-size) opt-donation)) 
-              donations+ (take-while #(<= % max-donation) (iterate #(+ % step-size) opt-donation)) 
+              qu-target*-fn (fn [qu-target] 
+                              ;(/ (+ qu-eff qu-target) 2)                
+                              (/ (+ 1 qu-target) 2))
               
-              calc-qus (|-> calc-sms-with-donation (--< :qu-avg-current :qu-avg-target))
+              _ (debug "qu-target*: " (qu-target*-fn qu-prognosis-target))
               
-              ;condition (fn [[qu-current qu-target]] (> qu-current (/ (+ qu-eff qu-target) 2)))
-              condition (fn [[qu-current qu-target]] 
-                          (let [x (> qu-current (/ (+ 1 qu-target) 2))] (println "x: " x) x))
+              calc-qus (|-> calc-sms-with-donation ;calc soil-moisture with a certain donation amount
+                            ;extract qu-current and qu-target from result
+                            (--< :qu-avg-current :qu-avg-target) 
+                            ;calculate qu-target* for the second element
+                            (--< first (|-> second qu-target*-fn)))
+                            
+              donations-- (take-while #(<= min-boundary-donation %) 
+                                      (iterate #(- % step-size) opt-boundary-donation)) 
+              donations++ (take-while #(<= % max-boundary-donation) 
+                                      (iterate #(+ % step-size) opt-boundary-donation))
               
-              ;depending on above condition for quotient when applying optimal donation, 
+              ;depending on qu-current vs qu-target* when applying optimal donation we got from boundary conditions, 
               ;choose branch to increase/or decrease amount
-              [branch exit-condition] (if (condition (calc-qus opt-donation)) 
-                                        [donations- <] ;opt-- branch: current < target 
-                                        [donations+ >]) ;opt++ branch: current > target
+              [branch exit-condition] (let [[qu-current qu-target*] (calc-qus opt-boundary-donation)
+                                            _ (debug "qu-current: " qu-current " qu-target*: " qu-target*)]
+                                        (if (> qu-current qu-target*)
+                                          [donations-- <] ;opt-- branch: exit if current <= target* 
+                                          [donations++ >])) ;opt++ branch: exit if current >= target*
               
               branch-qus (map (fn [donation] [donation (calc-qus donation)]) branch)
               ;drop all elements from branch which don't satisify condition
@@ -1352,15 +1390,20 @@ shallower extraction depth will be used"
                                       branch-qus) 
               
               [final-donation [final-qu-current final-qu-target]] 
-              (if (empty? branch-qus*) (last branch-qus) (first branch-qus*))
+              (if (empty? branch-qus*) 
+                ;for some reason (e.g. technology or slope or soil doesn't allow more) the
+                ;donation couldn't be increased until the qu-current gets larger than qu-target*,
+                ;thus take the highest possible value 
+                (last branch-qus) 
+                ;take the first donation which got us higer qu-current than qu-target*
+                (first branch-qus*))
               
-              _ (println "bqus: " branch-qus " bqus*: " branch-qus* " fd: " final-donation " queff:" qu-eff)
+              _ (debug "bqus: " branch-qus " bqus*: " branch-qus* " fd: " final-donation " queff:" qu-eff)
               ]
-          
           {:donation final-donation
            ;final-donation = max-donation works because final-donation actually is taken
            ;from the donations+ seq and thus at maximum max-donation
-           :state (if (and (= final-donation max-donation) (< final-qu-current qu-eff))
+           :state (if (and (= final-donation max-boundary-donation) (< final-qu-current qu-eff))
                     :increase-technological-max-donation
                     :optimal-donation)}))
       ;without irrigation we're above target curve, thus everything is fine
@@ -1423,29 +1466,37 @@ the technological restrictions"
                              #{4 5} 30
                              #{6} 20)
                 
-        max-donation (min max-donation-technology max-donation-slope max-donation-soil+60+weather)
-        opt-donation (if (< max-donation opt-donation-technology)
-                       (->> max-donation
+        max-possible-donation (min max-donation-technology max-donation-slope max-donation-soil+60+weather)
+        
+        
+        
+        ;get lowest maximal donation supported by technology
+        max-possible-and-supported-donation (* donation-step-size (quot max-possible-donation donation-step-size))
+        
+        opt-donation (if (< max-possible-and-supported-donation opt-donation-technology)
+                       (->> opt-donation-technology 
                             (iterate #(- % donation-step-size) ,,,)
-                            (drop-while #(< max-donation %) ,,,)
+                            (drop-while #(< max-possible-and-supported-donation %) ,,,)
                             first)
                        opt-donation-technology)
+        
+        _ (debug [max-donation-technology max-donation-slope max-donation-soil+60+weather max-possible-and-supported-donation opt-donation])
         
         high-soil-moisture? (< max-donation-soil+60+weather 15)]
     
     {:high-soil-moisture? high-soil-moisture?
-     :min-donation (if high-soil-moisture? 0 min-donation-technology)
-     :opt-donation opt-donation
-     :max-donation max-donation}))
+     :min-boundary-donation (if high-soil-moisture? 0 min-donation-technology)
+     :opt-boundary-donation opt-donation
+     :max-boundary-donation max-possible-and-supported-donation}))
 
 (defn calc-recommendation 
   "calculate the recommendation text and recommendation donation amount for the given input values"
   [prognosis-days slope technology inputs soil-moistures]
   (let [;get the boundaries depending on current soil-moisture, used technology and slope
         {:keys [high-soil-moisture?
-                max-donation  
-                min-donation
-                opt-donation]
+                max-boundary-donation  
+                min-boundary-donation
+                opt-boundary-donation]
          :as boundaries} (calc-donation-boundaries prognosis-days slope 
                                                    technology inputs soil-moistures) 
         
@@ -1454,27 +1505,28 @@ the technological restrictions"
                                   (assoc ,,, 
                                     :cycle-days (:technology/cycle-days technology)
                                     :step-size (:technology/donation-step-size technology)))
-        
-        {:keys [qu-avg-current
-                qu-avg-target]} (calc-soil-moisture-prognosis prognosis-days inputs soil-moistures)]
+                
+        {qu-prognosis-avg-current :qu-avg-current
+         qu-prognosis-avg-target :qu-avg-target} 
+        (calc-soil-moisture-prognosis prognosis-days inputs soil-moistures)]
     (cond 
-     (< qu-avg-current qu-avg-target) 
+     (< qu-prognosis-avg-current qu-prognosis-avg-target) 
      (cond 
       
       high-soil-moisture?
       {:state :high-soil-moisture}
       
-      (>= max-donation min-donation)
-      (do (println "quc: " qu-avg-current " < qut: " qu-avg-target ) 
-      (let [x (calc-donation-amount qu-avg-target technology+boundaries inputs soil-moistures)
-            _ (println "x: " x)]
-        x)
+      (>= max-boundary-donation min-boundary-donation)
+      (do 
+        (debug "qu-prognosis-avg-current: " qu-prognosis-avg-current " < qu-prognosis-avg-target: " qu-prognosis-avg-target ) 
+        (debug technology+boundaries)
+        (calc-donation-amount qu-prognosis-avg-target technology+boundaries inputs soil-moistures)
        )
       
       :else 
       {:state :below-technological-minimum})
      
-     (< qu-avg-target 1/10) 
+     (< qu-prognosis-avg-target 1/10) 
      {:state :outside-of-irrigation-period}
      
      :else 
@@ -1486,10 +1538,11 @@ the technological restrictions"
   (red-fn (fn [{:keys [days-to-go current-sm]} [f-input :as prognosis-inputs]]
             (let [{:keys [days-to-go* donation]} 
                   (if (zero? days-to-go)
-                    (let [{:keys [state donation] :as rec} 
+                    (let [_ (debug "abs-day: " (:abs-day f-input))
+                          {:keys [state donation] :as rec} 
                           (calc-recommendation (count prognosis-inputs) slope technology 
                                                prognosis-inputs (:soil-moistures current-sm))
-                          _ (println "abs-day: " (:abs-day f-input) " state: " state " donation: " donation)
+                          _ (debug "state: " state " recommended donation: " donation)
                           ]
                       (case state
                         (:optimal-soil-moisture 
@@ -1501,16 +1554,16 @@ the technological restrictions"
                         (:check-back-soon) {:days-to-go* (-> recommendation-states 
                                                              :check-back-soon 
                                                              :no-of-days
-                                                             inc) 
+                                                             #_inc) 
                                             :donation 0}
                         
                         (:increase-technological-max-donation
-                         :optimal-donation) {:days-to-go* prognosis-days 
+                         :optimal-donation) {:days-to-go* (:technology/cycle-days technology) #_prognosis-days 
                                              :donation donation}))
                     {:days-to-go* days-to-go 
                      :donation 0})
                   
-                  _ (println "days-to-go*: " days-to-go* " donation: " donation)
+                  _ (debug "days-to-go*: " (dec days-to-go*) " final donation to apply: " donation)
                   ]
               {:days-to-go (dec days-to-go*) 
                :current-sm (calc-soil-moisture current-sm (assoc f-input :irrigation-amount donation))}))
