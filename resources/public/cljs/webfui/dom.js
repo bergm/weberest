@@ -1,0 +1,11 @@
+goog.provide('webfui.dom');
+goog.require('cljs.core');
+goog.require('webfui.plugin.core');
+goog.require('webfui.core');
+goog.require('webfui.plugin.form_values');
+goog.require('webfui.plugin.form_values');
+goog.require('webfui.plugin.core');
+goog.require('webfui.core');
+webfui.dom.add_dom_watch = webfui.core.core_add_dom_watch;
+webfui.dom.defdom = webfui.core.core_defdom;
+webfui.plugin.core.register_plugin.call(null,(new webfui.plugin.form_values.form_values()));

@@ -935,12 +935,12 @@
           :as sms} (last sms*) 
          #_(bc/calc-soil-moistures inputs-7 (:plot/initial-soil-moistures plot))
          
-         _ (map pp/pprint sms*)
+         ;_ (map pp/pprint sms*)
          ]
         
         ;use rest on sms-7* etc. to skip the initial value prepended by reductions 
         ;which doesn't fit to the input list
-        #_(csv/write-csv (bc/create-csv-output inputs (rest sms*)) :delimiter ";")))   
+        (csv/write-csv (bc/create-csv-output inputs (rest sms*)) :delimiter ";")))   
   
 (defn plots-layout [user-id farm-id]
   [:div "user-id: " user-id " all plots in farm " farm-id])

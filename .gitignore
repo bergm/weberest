@@ -12,5 +12,4 @@ pom.xml
 /.settings
 /out
 /src-cljs
-/resources/public/cljs
 /.lein-repl-history
