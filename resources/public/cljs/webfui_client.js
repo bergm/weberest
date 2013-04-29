@@ -30595,9 +30595,9 @@ goog.require("webfui.framework");
 void 0;
 weberest.web.clients.webfui.core.send = function send(safe_state, method, uri, fun) {
   return goog.net.XhrIo.send(uri, function(event) {
-    var response__31408 = event.target;
-    if(cljs.core.truth_(response__31408.isSuccess())) {
-      return fun.call(null, response__31408.getResponseText())
+    var response__36224 = event.target;
+    if(cljs.core.truth_(response__36224.isSuccess())) {
+      return fun.call(null, response__36224.getResponseText())
     }else {
       return cljs.core.reset_BANG_.call(null, weberest.web.clients.webfui.core.app_state, safe_state)
     }
@@ -30606,38 +30606,38 @@ weberest.web.clients.webfui.core.send = function send(safe_state, method, uri, f
 weberest.web.clients.webfui.core.initial_state = cljs.core.ObjMap.fromObject(["\ufdd0'plot-ids", "\ufdd0'selected-plot-id", "\ufdd0'until-day-month", "\ufdd0'weather-year", "\ufdd0'csv-separator", "\ufdd0'irrigation-data", "\ufdd0'temp-irrigation-data", "\ufdd0'simulate?"], {"\ufdd0'plot-ids":cljs.core.PersistentVector.EMPTY, "\ufdd0'selected-plot-id":"zalf", "\ufdd0'until-day-month":cljs.core.PersistentVector.fromArray([10, 10], true), "\ufdd0'weather-year":1993, "\ufdd0'csv-separator":";", "\ufdd0'irrigation-data":cljs.core.PersistentVector.fromArray([cljs.core.PersistentVector.fromArray([1, 
 4, 22], true), cljs.core.PersistentVector.fromArray([2, 5, 10], true), cljs.core.PersistentVector.fromArray([11, 7, 30], true)], true), "\ufdd0'temp-irrigation-data":cljs.core.PersistentVector.fromArray([null, null, null], true), "\ufdd0'simulate?":false});
 weberest.web.clients.webfui.core.app_state = cljs.core.atom.call(null, weberest.web.clients.webfui.core.initial_state);
-weberest.web.clients.webfui.core.send.call(null, weberest.web.clients.webfui.core.initial_state, "\ufdd0'get", "rest/farms/111/plots", function(p1__31409_SHARP_) {
-  return cljs.core.swap_BANG_.call(null, weberest.web.clients.webfui.core.app_state, cljs.core.assoc, "\ufdd0'plot-ids", cljs.reader.read_string.call(null, p1__31409_SHARP_))
+weberest.web.clients.webfui.core.send.call(null, weberest.web.clients.webfui.core.initial_state, "\ufdd0'get", "rest/farms/111/plots", function(p1__36225_SHARP_) {
+  return cljs.core.swap_BANG_.call(null, weberest.web.clients.webfui.core.app_state, cljs.core.assoc, "\ufdd0'plot-ids", cljs.reader.read_string.call(null, p1__36225_SHARP_))
 });
 weberest.web.clients.webfui.core.is_leap_year = function is_leap_year(year) {
   return cljs.core._EQ_.call(null, 0, cljs.core.rem.call(null, 2012 - year, 4))
 };
 weberest.web.clients.webfui.core.create_option = function() {
-  var create_option__delegate = function(value, selected_value, p__31410) {
-    var vec__31415__31416 = p__31410;
-    var display_value__31417 = cljs.core.nth.call(null, vec__31415__31416, 0, null);
+  var create_option__delegate = function(value, selected_value, p__36226) {
+    var vec__36231__36232 = p__36226;
+    var display_value__36233 = cljs.core.nth.call(null, vec__36231__36232, 0, null);
     return cljs.core.PersistentVector.fromArray(["\ufdd0'option", cljs.core.merge.call(null, cljs.core.ObjMap.fromObject(["\ufdd0'value"], {"\ufdd0'value":value}), cljs.core._EQ_.call(null, value, selected_value) ? cljs.core.ObjMap.fromObject(["\ufdd0'selected"], {"\ufdd0'selected":"selected"}) : null), function() {
-      var or__3943__auto____31418 = display_value__31417;
-      if(cljs.core.truth_(or__3943__auto____31418)) {
-        return or__3943__auto____31418
+      var or__3943__auto____36234 = display_value__36233;
+      if(cljs.core.truth_(or__3943__auto____36234)) {
+        return or__3943__auto____36234
       }else {
         return value
       }
     }()], true)
   };
   var create_option = function(value, selected_value, var_args) {
-    var p__31410 = null;
+    var p__36226 = null;
     if(goog.isDef(var_args)) {
-      p__31410 = cljs.core.array_seq(Array.prototype.slice.call(arguments, 2), 0)
+      p__36226 = cljs.core.array_seq(Array.prototype.slice.call(arguments, 2), 0)
     }
-    return create_option__delegate.call(this, value, selected_value, p__31410)
+    return create_option__delegate.call(this, value, selected_value, p__36226)
   };
   create_option.cljs$lang$maxFixedArity = 2;
-  create_option.cljs$lang$applyTo = function(arglist__31419) {
-    var value = cljs.core.first(arglist__31419);
-    var selected_value = cljs.core.first(cljs.core.next(arglist__31419));
-    var p__31410 = cljs.core.rest(cljs.core.next(arglist__31419));
-    return create_option__delegate(value, selected_value, p__31410)
+  create_option.cljs$lang$applyTo = function(arglist__36235) {
+    var value = cljs.core.first(arglist__36235);
+    var selected_value = cljs.core.first(cljs.core.next(arglist__36235));
+    var p__36226 = cljs.core.rest(cljs.core.next(arglist__36235));
+    return create_option__delegate(value, selected_value, p__36226)
   };
   create_option.cljs$lang$arity$variadic = create_option__delegate;
   return create_option
@@ -30654,36 +30654,36 @@ weberest.web.clients.webfui.core.create_number_input = function() {
     return create_number_input__delegate.call(this, opts)
   };
   create_number_input.cljs$lang$maxFixedArity = 0;
-  create_number_input.cljs$lang$applyTo = function(arglist__31420) {
-    var opts = cljs.core.seq(arglist__31420);
+  create_number_input.cljs$lang$applyTo = function(arglist__36236) {
+    var opts = cljs.core.seq(arglist__36236);
     return create_number_input__delegate(opts)
   };
   create_number_input.cljs$lang$arity$variadic = create_number_input__delegate;
   return create_number_input
 }();
 weberest.web.clients.webfui.core.create_irrigation_inputs = function() {
-  var create_irrigation_inputs__delegate = function(p__31421) {
-    var vec__31429__31430 = p__31421;
-    var row_no__31431 = cljs.core.nth.call(null, vec__31429__31430, 0, null);
-    var day__31432 = cljs.core.nth.call(null, vec__31429__31430, 1, null);
-    var month__31433 = cljs.core.nth.call(null, vec__31429__31430, 2, null);
-    var amount__31434 = cljs.core.nth.call(null, vec__31429__31430, 3, null);
-    var common_opts__31435 = cljs.core.PersistentVector.fromArray(["\ufdd0'data-row-no", row_no__31431, "\ufdd0'watch", "\ufdd0'irrigation-data-changed"], true);
-    return cljs.core.PersistentVector.fromArray(["\ufdd0'div", cljs.core.apply.call(null, weberest.web.clients.webfui.core.create_number_input, "\ufdd0'data-id", "\ufdd0'day", "\ufdd0'placeholder", "Tag", "\ufdd0'value", day__31432, common_opts__31435), cljs.core.apply.call(null, weberest.web.clients.webfui.core.create_number_input, "\ufdd0'data-id", "\ufdd0'month", "\ufdd0'placeholder", "Monat", "\ufdd0'value", month__31433, common_opts__31435), cljs.core.apply.call(null, weberest.web.clients.webfui.core.create_number_input, 
-    "\ufdd0'data-id", "\ufdd0'amount", "\ufdd0'placeholder", "Menge [mm]", "\ufdd0'value", amount__31434, common_opts__31435), cljs.core.PersistentVector.fromArray(["\ufdd0'input", cljs.core.merge.call(null, cljs.core.ObjMap.fromObject(["\ufdd0'type", "\ufdd0'data-row-no"], {"\ufdd0'type":"button", "\ufdd0'data-row-no":row_no__31431}), cljs.core.truth_(row_no__31431) ? cljs.core.ObjMap.fromObject(["\ufdd0'mouse", "\ufdd0'value"], {"\ufdd0'mouse":"\ufdd0'remove-irrigation-row", "\ufdd0'value":"Zeile entfernen"}) : 
+  var create_irrigation_inputs__delegate = function(p__36237) {
+    var vec__36245__36246 = p__36237;
+    var row_no__36247 = cljs.core.nth.call(null, vec__36245__36246, 0, null);
+    var day__36248 = cljs.core.nth.call(null, vec__36245__36246, 1, null);
+    var month__36249 = cljs.core.nth.call(null, vec__36245__36246, 2, null);
+    var amount__36250 = cljs.core.nth.call(null, vec__36245__36246, 3, null);
+    var common_opts__36251 = cljs.core.PersistentVector.fromArray(["\ufdd0'data-row-no", row_no__36247, "\ufdd0'watch", "\ufdd0'irrigation-data-changed"], true);
+    return cljs.core.PersistentVector.fromArray(["\ufdd0'div", cljs.core.apply.call(null, weberest.web.clients.webfui.core.create_number_input, "\ufdd0'data-id", "\ufdd0'day", "\ufdd0'placeholder", "Tag", "\ufdd0'value", day__36248, common_opts__36251), cljs.core.apply.call(null, weberest.web.clients.webfui.core.create_number_input, "\ufdd0'data-id", "\ufdd0'month", "\ufdd0'placeholder", "Monat", "\ufdd0'value", month__36249, common_opts__36251), cljs.core.apply.call(null, weberest.web.clients.webfui.core.create_number_input, 
+    "\ufdd0'data-id", "\ufdd0'amount", "\ufdd0'placeholder", "Menge [mm]", "\ufdd0'value", amount__36250, common_opts__36251), cljs.core.PersistentVector.fromArray(["\ufdd0'input", cljs.core.merge.call(null, cljs.core.ObjMap.fromObject(["\ufdd0'type", "\ufdd0'data-row-no"], {"\ufdd0'type":"button", "\ufdd0'data-row-no":row_no__36247}), cljs.core.truth_(row_no__36247) ? cljs.core.ObjMap.fromObject(["\ufdd0'mouse", "\ufdd0'value"], {"\ufdd0'mouse":"\ufdd0'remove-irrigation-row", "\ufdd0'value":"Zeile entfernen"}) : 
     cljs.core.ObjMap.fromObject(["\ufdd0'mouse", "\ufdd0'value"], {"\ufdd0'mouse":"\ufdd0'add-irrigation-row", "\ufdd0'value":"Zeile hinzuf\u00fcgen"}))], true)], true)
   };
   var create_irrigation_inputs = function(var_args) {
-    var p__31421 = null;
+    var p__36237 = null;
     if(goog.isDef(var_args)) {
-      p__31421 = cljs.core.array_seq(Array.prototype.slice.call(arguments, 0), 0)
+      p__36237 = cljs.core.array_seq(Array.prototype.slice.call(arguments, 0), 0)
     }
-    return create_irrigation_inputs__delegate.call(this, p__31421)
+    return create_irrigation_inputs__delegate.call(this, p__36237)
   };
   create_irrigation_inputs.cljs$lang$maxFixedArity = 0;
-  create_irrigation_inputs.cljs$lang$applyTo = function(arglist__31436) {
-    var p__31421 = cljs.core.seq(arglist__31436);
-    return create_irrigation_inputs__delegate(p__31421)
+  create_irrigation_inputs.cljs$lang$applyTo = function(arglist__36252) {
+    var p__36237 = cljs.core.seq(arglist__36252);
+    return create_irrigation_inputs__delegate(p__36237)
   };
   create_irrigation_inputs.cljs$lang$arity$variadic = create_irrigation_inputs__delegate;
   return create_irrigation_inputs
@@ -30692,20 +30692,20 @@ weberest.web.clients.webfui.core.indexed = function indexed(col) {
   return cljs.core.partition.call(null, 2, cljs.core.interleave.call(null, cljs.core.range.call(null), col))
 };
 weberest.web.clients.webfui.core.render_all = function render_all(state) {
-  var year__31490 = (new cljs.core.Keyword("\ufdd0'weather-year")).call(null, state);
-  var vec__31489__31491 = (new cljs.core.Keyword("\ufdd0'until-day-month")).call(null, state);
-  var until_day__31492 = cljs.core.nth.call(null, vec__31489__31491, 0, null);
-  var until_month__31493 = cljs.core.nth.call(null, vec__31489__31491, 1, null);
+  var year__36306 = (new cljs.core.Keyword("\ufdd0'weather-year")).call(null, state);
+  var vec__36305__36307 = (new cljs.core.Keyword("\ufdd0'until-day-month")).call(null, state);
+  var until_day__36308 = cljs.core.nth.call(null, vec__36305__36307, 0, null);
+  var until_month__36309 = cljs.core.nth.call(null, vec__36305__36307, 1, null);
   return cljs.core.PersistentVector.fromArray(["\ufdd0'form", cljs.core.ObjMap.fromObject(["\ufdd0'name"], {"\ufdd0'name":"test-data-form"}), cljs.core.PersistentVector.fromArray(["\ufdd0'fieldset", cljs.core.PersistentVector.fromArray(["\ufdd0'legend", "Schlag Id"], true), cljs.core.PersistentVector.fromArray(["\ufdd0'select", function() {
-    var iter__2536__auto____31504 = function iter__31494(s__31495) {
+    var iter__2536__auto____36320 = function iter__36310(s__36311) {
       return new cljs.core.LazySeq(null, false, function() {
-        var s__31495__31500 = s__31495;
+        var s__36311__36316 = s__36311;
         while(true) {
-          var temp__4092__auto____31501 = cljs.core.seq.call(null, s__31495__31500);
-          if(temp__4092__auto____31501) {
-            var xs__4579__auto____31502 = temp__4092__auto____31501;
-            var pid__31503 = cljs.core.first.call(null, xs__4579__auto____31502);
-            return cljs.core.cons.call(null, weberest.web.clients.webfui.core.create_option.call(null, pid__31503, (new cljs.core.Keyword("\ufdd0'selected-plot-id")).call(null, state)), iter__31494.call(null, cljs.core.rest.call(null, s__31495__31500)))
+          var temp__4092__auto____36317 = cljs.core.seq.call(null, s__36311__36316);
+          if(temp__4092__auto____36317) {
+            var xs__4579__auto____36318 = temp__4092__auto____36317;
+            var pid__36319 = cljs.core.first.call(null, xs__4579__auto____36318);
+            return cljs.core.cons.call(null, weberest.web.clients.webfui.core.create_option.call(null, pid__36319, (new cljs.core.Keyword("\ufdd0'selected-plot-id")).call(null, state)), iter__36310.call(null, cljs.core.rest.call(null, s__36311__36316)))
           }else {
             return null
           }
@@ -30713,18 +30713,18 @@ weberest.web.clients.webfui.core.render_all = function render_all(state) {
         }
       }, null)
     };
-    return iter__2536__auto____31504.call(null, (new cljs.core.Keyword("\ufdd0'plot-ids")).call(null, state))
-  }()], true)], true), cljs.core.PersistentVector.fromArray(["\ufdd0'fieldset", cljs.core.PersistentVector.fromArray(["\ufdd0'legend", "Rechnen bis Datum"], true), weberest.web.clients.webfui.core.create_number_input.call(null, "\ufdd0'placeholder", "Tag", "\ufdd0'value", until_day__31492, "\ufdd0'watch", "\ufdd0'until-day"), weberest.web.clients.webfui.core.create_number_input.call(null, "\ufdd0'placeholder", "Monat", "\ufdd0'value", until_month__31493, "\ufdd0'watch", "\ufdd0'until-month")], true), 
+    return iter__2536__auto____36320.call(null, (new cljs.core.Keyword("\ufdd0'plot-ids")).call(null, state))
+  }()], true)], true), cljs.core.PersistentVector.fromArray(["\ufdd0'fieldset", cljs.core.PersistentVector.fromArray(["\ufdd0'legend", "Rechnen bis Datum"], true), weberest.web.clients.webfui.core.create_number_input.call(null, "\ufdd0'placeholder", "Tag", "\ufdd0'value", until_day__36308, "\ufdd0'watch", "\ufdd0'until-day"), weberest.web.clients.webfui.core.create_number_input.call(null, "\ufdd0'placeholder", "Monat", "\ufdd0'value", until_month__36309, "\ufdd0'watch", "\ufdd0'until-month")], true), 
   cljs.core.PersistentVector.fromArray(["\ufdd0'fieldset", cljs.core.PersistentVector.fromArray(["\ufdd0'legend", "Wetterdaten f\u00fcr Jahr"], true), cljs.core.PersistentVector.fromArray(["\ufdd0'select", cljs.core.ObjMap.fromObject(["\ufdd0'id", "\ufdd0'type", "\ufdd0'list"], {"\ufdd0'id":"weather-year", "\ufdd0'type":"text", "\ufdd0'list":"year-list"}), function() {
-    var iter__2536__auto____31515 = function iter__31505(s__31506) {
+    var iter__2536__auto____36331 = function iter__36321(s__36322) {
       return new cljs.core.LazySeq(null, false, function() {
-        var s__31506__31511 = s__31506;
+        var s__36322__36327 = s__36322;
         while(true) {
-          var temp__4092__auto____31512 = cljs.core.seq.call(null, s__31506__31511);
-          if(temp__4092__auto____31512) {
-            var xs__4579__auto____31513 = temp__4092__auto____31512;
-            var y__31514 = cljs.core.first.call(null, xs__4579__auto____31513);
-            return cljs.core.cons.call(null, weberest.web.clients.webfui.core.create_option.call(null, y__31514, year__31490), iter__31505.call(null, cljs.core.rest.call(null, s__31506__31511)))
+          var temp__4092__auto____36328 = cljs.core.seq.call(null, s__36322__36327);
+          if(temp__4092__auto____36328) {
+            var xs__4579__auto____36329 = temp__4092__auto____36328;
+            var y__36330 = cljs.core.first.call(null, xs__4579__auto____36329);
+            return cljs.core.cons.call(null, weberest.web.clients.webfui.core.create_option.call(null, y__36330, year__36306), iter__36321.call(null, cljs.core.rest.call(null, s__36322__36327)))
           }else {
             return null
           }
@@ -30732,22 +30732,22 @@ weberest.web.clients.webfui.core.render_all = function render_all(state) {
         }
       }, null)
     };
-    return iter__2536__auto____31515.call(null, cljs.core.range.call(null, 1993, 1998 + 1))
+    return iter__2536__auto____36331.call(null, cljs.core.range.call(null, 1993, 1998 + 1))
   }()], true)], true), cljs.core.PersistentVector.fromArray(["\ufdd0'fieldset", cljs.core.PersistentVector.fromArray(["\ufdd0'legend", "Beregnungsdaten"], true), function() {
-    var iter__2536__auto____31540 = function iter__31516(s__31517) {
+    var iter__2536__auto____36356 = function iter__36332(s__36333) {
       return new cljs.core.LazySeq(null, false, function() {
-        var s__31517__31529 = s__31517;
+        var s__36333__36345 = s__36333;
         while(true) {
-          var temp__4092__auto____31530 = cljs.core.seq.call(null, s__31517__31529);
-          if(temp__4092__auto____31530) {
-            var xs__4579__auto____31531 = temp__4092__auto____31530;
-            var vec__31532__31534 = cljs.core.first.call(null, xs__4579__auto____31531);
-            var row_no__31535 = cljs.core.nth.call(null, vec__31532__31534, 0, null);
-            var vec__31533__31536 = cljs.core.nth.call(null, vec__31532__31534, 1, null);
-            var day__31537 = cljs.core.nth.call(null, vec__31533__31536, 0, null);
-            var month__31538 = cljs.core.nth.call(null, vec__31533__31536, 1, null);
-            var amount__31539 = cljs.core.nth.call(null, vec__31533__31536, 2, null);
-            return cljs.core.cons.call(null, weberest.web.clients.webfui.core.create_irrigation_inputs.call(null, row_no__31535, day__31537, month__31538, amount__31539), iter__31516.call(null, cljs.core.rest.call(null, s__31517__31529)))
+          var temp__4092__auto____36346 = cljs.core.seq.call(null, s__36333__36345);
+          if(temp__4092__auto____36346) {
+            var xs__4579__auto____36347 = temp__4092__auto____36346;
+            var vec__36348__36350 = cljs.core.first.call(null, xs__4579__auto____36347);
+            var row_no__36351 = cljs.core.nth.call(null, vec__36348__36350, 0, null);
+            var vec__36349__36352 = cljs.core.nth.call(null, vec__36348__36350, 1, null);
+            var day__36353 = cljs.core.nth.call(null, vec__36349__36352, 0, null);
+            var month__36354 = cljs.core.nth.call(null, vec__36349__36352, 1, null);
+            var amount__36355 = cljs.core.nth.call(null, vec__36349__36352, 2, null);
+            return cljs.core.cons.call(null, weberest.web.clients.webfui.core.create_irrigation_inputs.call(null, row_no__36351, day__36353, month__36354, amount__36355), iter__36332.call(null, cljs.core.rest.call(null, s__36333__36345)))
           }else {
             return null
           }
@@ -30755,55 +30755,55 @@ weberest.web.clients.webfui.core.render_all = function render_all(state) {
         }
       }, null)
     };
-    return iter__2536__auto____31540.call(null, weberest.web.clients.webfui.core.indexed.call(null, (new cljs.core.Keyword("\ufdd0'irrigation-data")).call(null, state)))
+    return iter__2536__auto____36356.call(null, weberest.web.clients.webfui.core.indexed.call(null, (new cljs.core.Keyword("\ufdd0'irrigation-data")).call(null, state)))
   }(), cljs.core.apply.call(null, weberest.web.clients.webfui.core.create_irrigation_inputs, null, (new cljs.core.Keyword("\ufdd0'temp-irrigation-data")).call(null, state))], true), cljs.core.PersistentVector.fromArray(["\ufdd0'input", cljs.core.ObjMap.fromObject(["\ufdd0'type", "\ufdd0'mouse", "\ufdd0'value"], {"\ufdd0'type":"button", "\ufdd0'mouse":"\ufdd0'calc-and-download", "\ufdd0'value":"Berechnen & CSV-Downloaden"})], true), cljs.core.PersistentVector.fromArray(["\ufdd0'input", cljs.core.ObjMap.fromObject(["\ufdd0'type", 
   "\ufdd0'mouse", "\ufdd0'value"], {"\ufdd0'type":"button", "\ufdd0'mouse":"\ufdd0'sim-and-download", "\ufdd0'value":"Simulieren & CSV-Downloaden"})], true), cljs.core.PersistentVector.fromArray(["\ufdd0'a", cljs.core.ObjMap.fromObject(["\ufdd0'href"], {"\ufdd0'href":"https://dl.dropboxusercontent.com/u/29574974/Weberest/output-analysis.xlsx"}), "Analyse Excel-File herunterladen"], true)], true)
 };
 webfui.framework.add_mouse_watch_helper.call(null, "\ufdd0'calc-and-download", function(state, first_element, last_element) {
   if(cljs.core.truth_(webfui.utilities.clicked.call(null, first_element, last_element))) {
-    var vec__31541__31542 = (new cljs.core.Keyword("\ufdd0'until-day-month")).call(null, state);
-    var day__31543 = cljs.core.nth.call(null, vec__31541__31542, 0, null);
-    var month__31544 = cljs.core.nth.call(null, vec__31541__31542, 1, null);
-    var wy__31545 = domina.by_id.call(null, "weather-year");
-    var url__31546 = [cljs.core.str("rest/farms/111/plots/"), cljs.core.str((new cljs.core.Keyword("\ufdd0'selected-plot-id")).call(null, state)), cljs.core.str(".csv"), cljs.core.str("?sim=false&until-day="), cljs.core.str(day__31543), cljs.core.str("&until-month="), cljs.core.str(month__31544), cljs.core.str("&weather-year="), cljs.core.str(parseInt(wy__31545.options.item(wy__31545.selectedIndex).value)), cljs.core.str("&irrigation-data="), cljs.core.str(cljs.core.prn_str.call(null, (new cljs.core.Keyword("\ufdd0'irrigation-data")).call(null, 
+    var vec__36357__36358 = (new cljs.core.Keyword("\ufdd0'until-day-month")).call(null, state);
+    var day__36359 = cljs.core.nth.call(null, vec__36357__36358, 0, null);
+    var month__36360 = cljs.core.nth.call(null, vec__36357__36358, 1, null);
+    var wy__36361 = domina.by_id.call(null, "weather-year");
+    var url__36362 = [cljs.core.str("rest/farms/111/plots/"), cljs.core.str((new cljs.core.Keyword("\ufdd0'selected-plot-id")).call(null, state)), cljs.core.str(".csv"), cljs.core.str("?sim=false&until-day="), cljs.core.str(day__36359), cljs.core.str("&until-month="), cljs.core.str(month__36360), cljs.core.str("&weather-year="), cljs.core.str(parseInt(wy__36361.options.item(wy__36361.selectedIndex).value)), cljs.core.str("&irrigation-data="), cljs.core.str(cljs.core.prn_str.call(null, (new cljs.core.Keyword("\ufdd0'irrigation-data")).call(null, 
     state)))].join("");
-    return window.open(url__31546)
+    return window.open(url__36362)
   }else {
     return null
   }
 }, "\ufdd0'full");
 webfui.framework.add_mouse_watch_helper.call(null, "\ufdd0'sim-and-download", function(state, first_element, last_element) {
   if(cljs.core.truth_(webfui.utilities.clicked.call(null, first_element, last_element))) {
-    var vec__31549__31550 = (new cljs.core.Keyword("\ufdd0'until-day-month")).call(null, state);
-    var day__31551 = cljs.core.nth.call(null, vec__31549__31550, 0, null);
-    var month__31552 = cljs.core.nth.call(null, vec__31549__31550, 1, null);
-    var wy__31553 = domina.by_id.call(null, "weather-year");
-    var url__31554 = [cljs.core.str("rest/farms/111/plots/"), cljs.core.str((new cljs.core.Keyword("\ufdd0'selected-plot-id")).call(null, state)), cljs.core.str(".csv"), cljs.core.str("?sim=true&until-day="), cljs.core.str(day__31551), cljs.core.str("&until-month="), cljs.core.str(month__31552), cljs.core.str("&weather-year="), cljs.core.str(parseInt(wy__31553.options.item(wy__31553.selectedIndex).value))].join("");
-    return window.open(url__31554)
+    var vec__36365__36366 = (new cljs.core.Keyword("\ufdd0'until-day-month")).call(null, state);
+    var day__36367 = cljs.core.nth.call(null, vec__36365__36366, 0, null);
+    var month__36368 = cljs.core.nth.call(null, vec__36365__36366, 1, null);
+    var wy__36369 = domina.by_id.call(null, "weather-year");
+    var url__36370 = [cljs.core.str("rest/farms/111/plots/"), cljs.core.str((new cljs.core.Keyword("\ufdd0'selected-plot-id")).call(null, state)), cljs.core.str(".csv"), cljs.core.str("?sim=true&until-day="), cljs.core.str(day__36367), cljs.core.str("&until-month="), cljs.core.str(month__36368), cljs.core.str("&weather-year="), cljs.core.str(parseInt(wy__36369.options.item(wy__36369.selectedIndex).value))].join("");
+    return window.open(url__36370)
   }else {
     return null
   }
 }, "\ufdd0'full");
 webfui.framework.add_mouse_watch_helper.call(null, "\ufdd0'remove-irrigation-row", function(state, first_element, last_element) {
   if(cljs.core.truth_(webfui.utilities.clicked.call(null, first_element, last_element))) {
-    var row_no__31555 = parseInt(webfui.utilities.get_attribute.call(null, first_element, "\ufdd0'data-row-no"));
-    return cljs.core.ObjMap.fromObject(["\ufdd0'irrigation-data"], {"\ufdd0'irrigation-data":cljs.core.keep_indexed.call(null, function(p1__31547_SHARP_, p2__31548_SHARP_) {
-      if(cljs.core._EQ_.call(null, p1__31547_SHARP_, row_no__31555)) {
+    var row_no__36371 = parseInt(webfui.utilities.get_attribute.call(null, first_element, "\ufdd0'data-row-no"));
+    return cljs.core.ObjMap.fromObject(["\ufdd0'irrigation-data"], {"\ufdd0'irrigation-data":cljs.core.into.call(null, cljs.core.PersistentVector.EMPTY, cljs.core.keep_indexed.call(null, function(p1__36363_SHARP_, p2__36364_SHARP_) {
+      if(cljs.core._EQ_.call(null, p1__36363_SHARP_, row_no__36371)) {
         return null
       }else {
-        return p2__31548_SHARP_
+        return p2__36364_SHARP_
       }
-    }, (new cljs.core.Keyword("\ufdd0'irrigation-data")).call(null, state))})
+    }, (new cljs.core.Keyword("\ufdd0'irrigation-data")).call(null, state)))})
   }else {
     return null
   }
 }, "\ufdd0'full");
 webfui.framework.add_mouse_watch_helper.call(null, "\ufdd0'add-irrigation-row", function(state, first_element, last_element) {
   if(cljs.core.truth_(webfui.utilities.clicked.call(null, first_element, last_element))) {
-    var temp_id__31556 = (new cljs.core.Keyword("\ufdd0'temp-irrigation-data")).call(null, state);
-    var id__31557 = (new cljs.core.Keyword("\ufdd0'irrigation-data")).call(null, state);
-    if(cljs.core.not_any_QMARK_.call(null, cljs.core.nil_QMARK_, temp_id__31556)) {
-      return cljs.core.ObjMap.fromObject(["\ufdd0'irrigation-data", "\ufdd0'temp-irrigation-data"], {"\ufdd0'irrigation-data":cljs.core.conj.call(null, id__31557, temp_id__31556), "\ufdd0'temp-irrigation-data":cljs.core.PersistentVector.fromArray([null, null, null], true)})
+    var temp_id__36372 = (new cljs.core.Keyword("\ufdd0'temp-irrigation-data")).call(null, state);
+    var id__36373 = (new cljs.core.Keyword("\ufdd0'irrigation-data")).call(null, state);
+    if(cljs.core.not_any_QMARK_.call(null, cljs.core.nil_QMARK_, temp_id__36372)) {
+      return cljs.core.ObjMap.fromObject(["\ufdd0'irrigation-data", "\ufdd0'temp-irrigation-data"], {"\ufdd0'irrigation-data":cljs.core.conj.call(null, id__36373, temp_id__36372), "\ufdd0'temp-irrigation-data":cljs.core.PersistentVector.fromArray([null, null, null], true)})
     }else {
       return null
     }
@@ -30812,34 +30812,34 @@ webfui.framework.add_mouse_watch_helper.call(null, "\ufdd0'add-irrigation-row", 
   }
 }, "\ufdd0'full");
 webfui.framework.add_dom_watch_helper.call(null, "\ufdd0'irrigation-data-changed", function(state, new_element) {
-  var map__31558__31559 = cljs.core.second.call(null, new_element);
-  var map__31558__31560 = cljs.core.seq_QMARK_.call(null, map__31558__31559) ? clojure.lang.PersistentHashMap.create.call(null, cljs.core.seq.call(null, map__31558__31559)) : map__31558__31559;
-  var data_row_no__31561 = cljs.core._lookup.call(null, map__31558__31560, "\ufdd0'data-row-no", null);
-  var value__31562 = cljs.core._lookup.call(null, map__31558__31560, "\ufdd0'value", null);
-  var data_id__31563 = cljs.core._lookup.call(null, map__31558__31560, "\ufdd0'data-id", null);
-  var row_no__31564 = cljs.core.not.call(null, clojure.string.blank_QMARK_.call(null, data_row_no__31561)) ? parseInt(data_row_no__31561) : null;
-  var irr_data__31565 = (new cljs.core.Keyword("\ufdd0'irrigation-data")).call(null, state);
-  var irr_data_row__31566 = cljs.core.truth_(row_no__31564) ? cljs.core.nth.call(null, irr_data__31565, row_no__31564) : (new cljs.core.Keyword("\ufdd0'temp-irrigation-data")).call(null, state);
-  if(cljs.core.truth_(clojure.string.blank_QMARK_.call(null, value__31562))) {
+  var map__36374__36375 = cljs.core.second.call(null, new_element);
+  var map__36374__36376 = cljs.core.seq_QMARK_.call(null, map__36374__36375) ? clojure.lang.PersistentHashMap.create.call(null, cljs.core.seq.call(null, map__36374__36375)) : map__36374__36375;
+  var data_row_no__36377 = cljs.core._lookup.call(null, map__36374__36376, "\ufdd0'data-row-no", null);
+  var value__36378 = cljs.core._lookup.call(null, map__36374__36376, "\ufdd0'value", null);
+  var data_id__36379 = cljs.core._lookup.call(null, map__36374__36376, "\ufdd0'data-id", null);
+  var row_no__36380 = cljs.core.not.call(null, clojure.string.blank_QMARK_.call(null, data_row_no__36377)) ? parseInt(data_row_no__36377) : null;
+  var irr_data__36381 = (new cljs.core.Keyword("\ufdd0'irrigation-data")).call(null, state);
+  var irr_data_row__36382 = cljs.core.truth_(row_no__36380) ? cljs.core.nth.call(null, irr_data__36381, row_no__36380) : (new cljs.core.Keyword("\ufdd0'temp-irrigation-data")).call(null, state);
+  if(cljs.core.truth_(clojure.string.blank_QMARK_.call(null, value__36378))) {
     return null
   }else {
-    var vec__31567__31568 = irr_data_row__31566;
-    var day__31569 = cljs.core.nth.call(null, vec__31567__31568, 0, null);
-    var month__31570 = cljs.core.nth.call(null, vec__31567__31568, 1, null);
-    var amount__31571 = cljs.core.nth.call(null, vec__31567__31568, 2, null);
-    var new_id__31574 = function() {
-      var G__31572__31573 = cljs.core.keyword.call(null, data_id__31563);
-      if(cljs.core._EQ_.call(null, "\ufdd0'amount", G__31572__31573)) {
-        return cljs.core.PersistentVector.fromArray([day__31569, month__31570, parseFloat(value__31562)], true)
+    var vec__36383__36384 = irr_data_row__36382;
+    var day__36385 = cljs.core.nth.call(null, vec__36383__36384, 0, null);
+    var month__36386 = cljs.core.nth.call(null, vec__36383__36384, 1, null);
+    var amount__36387 = cljs.core.nth.call(null, vec__36383__36384, 2, null);
+    var new_id__36390 = function() {
+      var G__36388__36389 = cljs.core.keyword.call(null, data_id__36379);
+      if(cljs.core._EQ_.call(null, "\ufdd0'amount", G__36388__36389)) {
+        return cljs.core.PersistentVector.fromArray([day__36385, month__36386, parseFloat(value__36378)], true)
       }else {
-        if(cljs.core._EQ_.call(null, "\ufdd0'month", G__31572__31573)) {
-          return cljs.core.PersistentVector.fromArray([day__31569, parseInt(value__31562), amount__31571], true)
+        if(cljs.core._EQ_.call(null, "\ufdd0'month", G__36388__36389)) {
+          return cljs.core.PersistentVector.fromArray([day__36385, parseInt(value__36378), amount__36387], true)
         }else {
-          if(cljs.core._EQ_.call(null, "\ufdd0'day", G__31572__31573)) {
-            return cljs.core.PersistentVector.fromArray([parseInt(value__31562), month__31570, amount__31571], true)
+          if(cljs.core._EQ_.call(null, "\ufdd0'day", G__36388__36389)) {
+            return cljs.core.PersistentVector.fromArray([parseInt(value__36378), month__36386, amount__36387], true)
           }else {
             if("\ufdd0'else") {
-              throw new Error([cljs.core.str("No matching clause: "), cljs.core.str(cljs.core.keyword.call(null, data_id__31563))].join(""));
+              throw new Error([cljs.core.str("No matching clause: "), cljs.core.str(cljs.core.keyword.call(null, data_id__36379))].join(""));
             }else {
               return null
             }
@@ -30847,23 +30847,23 @@ webfui.framework.add_dom_watch_helper.call(null, "\ufdd0'irrigation-data-changed
         }
       }
     }();
-    if(cljs.core.truth_(row_no__31564)) {
-      return cljs.core.ObjMap.fromObject(["\ufdd0'irrigation-data"], {"\ufdd0'irrigation-data":cljs.core.assoc.call(null, irr_data__31565, row_no__31564, new_id__31574)})
+    if(cljs.core.truth_(row_no__36380)) {
+      return cljs.core.ObjMap.fromObject(["\ufdd0'irrigation-data"], {"\ufdd0'irrigation-data":cljs.core.assoc.call(null, irr_data__36381, row_no__36380, new_id__36390)})
     }else {
-      return cljs.core.ObjMap.fromObject(["\ufdd0'temp-irrigation-data"], {"\ufdd0'temp-irrigation-data":new_id__31574})
+      return cljs.core.ObjMap.fromObject(["\ufdd0'temp-irrigation-data"], {"\ufdd0'temp-irrigation-data":new_id__36390})
     }
   }
 });
 webfui.framework.add_dom_watch_helper.call(null, "\ufdd0'until-day", function(state, new_element) {
-  var map__31575__31576 = cljs.core.second.call(null, new_element);
-  var map__31575__31577 = cljs.core.seq_QMARK_.call(null, map__31575__31576) ? clojure.lang.PersistentHashMap.create.call(null, cljs.core.seq.call(null, map__31575__31576)) : map__31575__31576;
-  var value__31578 = cljs.core._lookup.call(null, map__31575__31577, "\ufdd0'value", null);
-  return cljs.core.ObjMap.fromObject(["\ufdd0'until-day-month"], {"\ufdd0'until-day-month":cljs.core.PersistentVector.fromArray([parseInt(value__31578), cljs.core.second.call(null, (new cljs.core.Keyword("\ufdd0'until-day-month")).call(null, state))], true)})
+  var map__36391__36392 = cljs.core.second.call(null, new_element);
+  var map__36391__36393 = cljs.core.seq_QMARK_.call(null, map__36391__36392) ? clojure.lang.PersistentHashMap.create.call(null, cljs.core.seq.call(null, map__36391__36392)) : map__36391__36392;
+  var value__36394 = cljs.core._lookup.call(null, map__36391__36393, "\ufdd0'value", null);
+  return cljs.core.ObjMap.fromObject(["\ufdd0'until-day-month"], {"\ufdd0'until-day-month":cljs.core.PersistentVector.fromArray([parseInt(value__36394), cljs.core.second.call(null, (new cljs.core.Keyword("\ufdd0'until-day-month")).call(null, state))], true)})
 });
 webfui.framework.add_dom_watch_helper.call(null, "\ufdd0'until-month", function(state, new_element) {
-  var map__31579__31580 = cljs.core.second.call(null, new_element);
-  var map__31579__31581 = cljs.core.seq_QMARK_.call(null, map__31579__31580) ? clojure.lang.PersistentHashMap.create.call(null, cljs.core.seq.call(null, map__31579__31580)) : map__31579__31580;
-  var value__31582 = cljs.core._lookup.call(null, map__31579__31581, "\ufdd0'value", null);
-  return cljs.core.ObjMap.fromObject(["\ufdd0'until-day-month"], {"\ufdd0'until-day-month":cljs.core.PersistentVector.fromArray([cljs.core.first.call(null, (new cljs.core.Keyword("\ufdd0'until-day-month")).call(null, state)), parseInt(value__31582)], true)})
+  var map__36395__36396 = cljs.core.second.call(null, new_element);
+  var map__36395__36397 = cljs.core.seq_QMARK_.call(null, map__36395__36396) ? clojure.lang.PersistentHashMap.create.call(null, cljs.core.seq.call(null, map__36395__36396)) : map__36395__36396;
+  var value__36398 = cljs.core._lookup.call(null, map__36395__36397, "\ufdd0'value", null);
+  return cljs.core.ObjMap.fromObject(["\ufdd0'until-day-month"], {"\ufdd0'until-day-month":cljs.core.PersistentVector.fromArray([cljs.core.first.call(null, (new cljs.core.Keyword("\ufdd0'until-day-month")).call(null, state)), parseInt(value__36398)], true)})
 });
 webfui.framework.launch_app.call(null, weberest.web.clients.webfui.core.app_state, weberest.web.clients.webfui.core.render_all);

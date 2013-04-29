@@ -136,7 +136,9 @@
 (wm/add-mouse-watch :remove-irrigation-row [state first-element last-element]
                     (when (wu/clicked first-element last-element)
                       (let [row-no (js/parseInt (wu/get-attribute first-element :data-row-no))]
-                        {:irrigation-data (keep-indexed #(when-not (= %1 row-no) %2) (:irrigation-data state))})))
+                        {:irrigation-data (->> (:irrigation-data state)
+                                               (keep-indexed #(when-not (= %1 row-no) %2) ,,,)
+                                               (into [] ,,,))})))
 
 (wm/add-mouse-watch :add-irrigation-row [state first-element last-element]
                     (when (wu/clicked first-element last-element)
