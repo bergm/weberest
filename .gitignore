@@ -13,3 +13,4 @@ pom.xml
 /out
 /src-cljs
 /.lein-repl-history
+/zalf.csv

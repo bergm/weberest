@@ -105,6 +105,8 @@
      [:input {:type "button" :mouse :calc-and-download :value "Berechnen & CSV-Downloaden"}]
      [:input {:type "button" :mouse :sim-and-download :value "Simulieren & CSV-Downloaden"}]
      
+     [:a {:href "https://dl.dropboxusercontent.com/u/29574974/Weberest/output-analysis.xlsx"} "Analyse Excel-File herunterladen"]
+     
      ]))
 
 
@@ -145,8 +147,7 @@
                            :temp-irrigation-data [nil nil nil]}))))
 
 (wm/add-dom-watch :irrigation-data-changed [state new-element]
-                  (js/alert "irrigation")
-                  #_(let [{:keys [data-id value data-row-no]} (second new-element)
+                  (let [{:keys [data-id value data-row-no]} (second new-element)
                         row-no (when (not (string/blank? data-row-no)) 
                                  (js/parseInt data-row-no))
                         irr-data (:irrigation-data state)
@@ -169,7 +170,7 @@
 
 (wm/add-dom-watch :until-month [state new-element]
                   (let [{:keys [value]} (second new-element)]
-                    {:until-day-month [(-> state :until-day-month second) (js/parseInt value) ]}))
+                    {:until-day-month [(-> state :until-day-month first) (js/parseInt value) ]}))
 
 (wf/launch-app app-state render-all)
 
