@@ -469,8 +469,8 @@ fakt:=1 + 0.77 * SIN(0.01571 * (t - 166));"}
                                           (|-> volp->mm7dm mm7dm->mm7cm)]
                       :mm [#(expand-layers (max-soil-depth) %
                                            :expand-fn /
-                                           :last-value-fn (fn [expanded-values last-value]
-                                                            (fn [value depth] (last expanded-values))))
+                                           :last-values-fn (fn [expanded-values last-value]
+                                                              (fn [value depth] (last expanded-values))))
                            identity])]
     (->> user-input-soil-data
          sorted-unzip-map
@@ -492,8 +492,8 @@ fakt:=1 + 0.77 * SIN(0.01571 * (t - 166));"}
                                                                           mm7dm->mm7cm)})]
                       :mm [#(expand-layers (max-soil-depth) %
                                            :expand-fn /
-                                           :last-value-fn (fn [expanded-values last-value]
-                                                            (fn [value depth] (last expanded-values))))
+                                           :last-values-fn (fn [expanded-values last-value]
+                                                              (fn [value depth] (last expanded-values))))
                            (fn [_ _ sm] sm)])]
     (->> user-input-soil-moistures
          sorted-unzip-map
