@@ -384,11 +384,14 @@ fakt:=1 + 0.77 * SIN(0.01571 * (t - 166));"}
                           sm
                           (assoc sm y (sorted-map)))]
                  (assoc-in sm* [y doy]
-                           {:doy doy
-                            :evaporation (potential-evaporation-turc-wendling
-                                          (Float/parseFloat globrad) (Float/parseFloat tavg))
-                            :precipitation (Float/parseFloat precip)
-                            :prognosis? false})))
+                           (let [gr (Float/parseFloat globrad)
+                                 ta (Float/parseFloat tavg)]
+                             {:doy doy
+                              :tavg ta
+                              :globrad gr
+                              :evaporation (potential-evaporation-turc-wendling gr ta)
+                              :precipitation (Float/parseFloat precip)
+                              :prognosis? false}))))
           (sorted-map) (rest climate-data)))
 
 (defn longterm-evap-precip [doy]
@@ -438,19 +441,19 @@ fakt:=1 + 0.77 * SIN(0.01571 * (t - 166));"}
          #_"21.10." 2.2, 2.9, 1.8, 1.4, 1.2, 0.6, 1.3, 2.0, 0.4, 1.9]]
     (if (and (< 90 doy) (<= doy (+ 90 213)))
       (let [index (- doy 90 1)]
-        {:evaporation (nth longterm-average-evaporation-values index),
+        {:tavg -9999
+         :globrad -9999
+         :evaporation (nth longterm-average-evaporation-values index),
          :precipitation (nth longterm-average-precipitation-values index)})
-      {:evaporation 0
-       :precipitation 0})))
+      {:tavg -9999
+       :globrad -9999
+       :evaporation -9999
+       :precipitation -9999})))
 
-(defn weather-at [map doy]
-  (if-let [v (find map doy)]
+(defn weather-at [m doy]
+  (if-let [v (find m doy)]
     (second v)
-    (let [{:keys [evaporation precipitation]} (longterm-evap-precip doy)]
-      {:doy doy
-       :evaporation evaporation
-       :precipitation precipitation
-       :prognosis? true})))
+    (assoc (longterm-evap-precip doy) :prognosis? true)))
 
 ;type CodeEinheit = | PFK | PNFK | Volp | MM
 ;:PFK :PNFK :Volp :MM
@@ -1218,6 +1221,8 @@ shallower extraction depth will be used"
          :rel-dc-day rel-dc-day
          :crop crop
          :irrigation-amount (donations-at irrigation-donations abs-day)
+         :tavg (bu/round (:tavg weather) :digits 1)
+         :globrad (bu/round (:globrad weather) :digits 1)
          :evaporation (bu/round (:evaporation weather) :digits 1)
          :precipitation (bu/round (:precipitation weather) :digits 1)
          :irrigation-mode irrigation-mode
@@ -1629,43 +1634,48 @@ the technological restrictions"
 
 
 (defn create-csv-output [inputs full-reductions-results]
-  (let [header-line ["CLJ doy"
-                     "CLJ date"
-                     "CLJ rel DC day"
-                     "CLJ precip"
-                     "CLJ evap"
-                     "CLJ irrWater"
-                     "CLJ pet"
-                     "CLJ aet"
-                     "CLJ aet/pet"
-                     "CLJ aet/pet soll"
-                     "CLJ infil 200cm"
-                     "CLJ mm 10cm"
-                     "CLJ mm 10-30cm"
-                     "CLJ mm 30-60cm"
-                     "CLJ mm 60-100cm"
-                     "CLJ mm 100-150cm"
-                     "CLJ mm 5cm"
-                     "CLJ mm 10cm"
-                     "CLJ mm 20cm"
-                     "CLJ mm 30cm"
-                     "CLJ mm 40cm"
-                     "CLJ mm 50cm"
-                     "CLJ mm 60cm"
-                     "CLJ mm 70cm"
-                     "CLJ mm 80cm"
-                     "CLJ mm 90cm"
-                     "CLJ mm 100cm"
-                     "CLJ mm 110cm"
-                     "CLJ mm 120cm"
-                     "CLJ mm 130cm"
-                     "CLJ mm 140cm"
-                     "CLJ mm 150cm"
-                     "CLJ mm 160cm"
-                     "CLJ mm 170cm"
-                     "CLJ mm 180cm"
-                     "CLJ mm 190cm"
-                     "CLJ mm 200cm"]
+  (let [header-line ["doy"
+                     "date"
+                     "rel DC day"
+                     "precip [mm]"
+                     "tavg [°]"
+                     "globrad [Jpcm2]"
+                     "evap [mm]"
+                     "irrWater [mm]"
+                     "pet [mm]"
+                     "aet [mm]"
+                     "aet/pet"
+                     "aet/pet soll"
+                     "infil 200cm"
+                     "sm 0-30cm [mm]"
+                     "sm 30-60cm [mm]"
+                     "sm 60-90cm [mm]"
+                     "sm 5cm [mm]"
+                     "sm 10cm [mm]"
+                     "sm 20cm [mm]"
+                     "sm 30cm [mm]"
+                     "sm 40cm [mm]"
+                     "sm 50cm [mm]"
+                     "sm 60cm [mm]"
+                     "sm 70cm [mm]"
+                     "sm 80cm [mm]"
+                     "sm 90cm [mm]"
+                     "sm 100cm [mm]"
+                     "sm 110cm [mm]"
+                     "sm 120cm [mm]"
+                     "sm 130cm [mm]"
+                     "sm 140cm [mm]"
+                     "sm 150cm [mm]"
+                     "sm 160cm [mm]"
+                     "sm 170cm [mm]"
+                     "sm 180cm [mm]"
+                     "sm 190cm [mm]"
+                     "sm 200cm [mm]"
+                     "sm 0-10cm [mm]"
+                     "sm 10-20cm [mm]"
+                     "sm 30-60cm [mm]"
+                     "sm 60-100cm [mm]"
+                     "sm 100-150cm [mm]"]
 
         body-lines (map (fn [input rres]
                           #_(println rres)
@@ -1674,6 +1684,8 @@ the technological restrictions"
                                                  (bu/doy-to-date (:abs-day input)))
                                     (:rel-dc-day input)
                                     (:precipitation input)
+                                    (:tavg input)
+                                    (:globrad input)
                                     (- (:evaporation input))
                                     (:irrigation-amount rres #_input)
                                     (:pet rres)
@@ -1681,9 +1693,9 @@ the technological restrictions"
                                     (:aet7pet rres)
                                     (:qu-target rres)
                                     (:groundwater-infiltration rres)
-                                    (ic/sum (subvec (vec (:soil-moistures rres)) 0 2))
-                                    (ic/sum (subvec (vec (:soil-moistures rres)) 2 4))
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 0 4))
                                     (ic/sum (subvec (vec (:soil-moistures rres)) 4 7))
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 7 10))
                                     (ic/sum (subvec (vec (:soil-moistures rres)) 7 11))
                                     (ic/sum (subvec (vec (:soil-moistures rres)) 11 16))
                                     (nth (:soil-moistures rres) 0)
@@ -1706,7 +1718,12 @@ the technological restrictions"
                                     (nth (:soil-moistures rres) 17)
                                     (nth (:soil-moistures rres) 18)
                                     (nth (:soil-moistures rres) 19)
-                                    (nth (:soil-moistures rres) 20)]))
+                                    (nth (:soil-moistures rres) 20)
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 0 2))
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 2 4))
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 4 7))
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 7 11))
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 11 16))]))
                         inputs full-reductions-results)]
     (cons header-line body-lines)))
 
