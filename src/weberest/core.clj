@@ -1646,7 +1646,7 @@ the technological restrictions"
                      "aet [mm]"
                      "aet/pet"
                      "aet/pet soll"
-                     "infil 200cm"
+                     "infil 200cm [mm]"
                      "sm 0-30cm [mm]"
                      "sm 30-60cm [mm]"
                      "sm 60-90cm [mm]"
@@ -1696,8 +1696,6 @@ the technological restrictions"
                                     (ic/sum (subvec (vec (:soil-moistures rres)) 0 4))
                                     (ic/sum (subvec (vec (:soil-moistures rres)) 4 7))
                                     (ic/sum (subvec (vec (:soil-moistures rres)) 7 10))
-                                    (ic/sum (subvec (vec (:soil-moistures rres)) 7 11))
-                                    (ic/sum (subvec (vec (:soil-moistures rres)) 11 16))
                                     (nth (:soil-moistures rres) 0)
                                     (nth (:soil-moistures rres) 1)
                                     (nth (:soil-moistures rres) 2)
