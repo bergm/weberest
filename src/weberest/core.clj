@@ -979,6 +979,9 @@ shallower extraction depth will be used"
         {:abs-day abs-day
          :rel-dc-day rel-dc-day
          :irrigation-amount irrigation-amount
+         :effective-precipitation effective-precipitation
+         :effective-irrigation effective-irrigation
+         :effective-irrigation-uncovered effective-irrigation-uncovered
          :aet aet
          :pet pet*
          :aet7pet aet7pet
@@ -1675,7 +1678,10 @@ the technological restrictions"
                      "sm 10-20cm [mm]"
                      "sm 30-60cm [mm]"
                      "sm 60-100cm [mm]"
-                     "sm 100-150cm [mm]"]
+                     "sm 100-150cm [mm]"
+                     "effective-precipitation [mm]"
+                     "effective-irrigation"
+                     "effective-irrigation-uncovered"]
 
         body-lines (map (fn [input rres]
                           #_(println rres)
@@ -1721,7 +1727,10 @@ the technological restrictions"
                                     (ic/sum (subvec (vec (:soil-moistures rres)) 2 4))
                                     (ic/sum (subvec (vec (:soil-moistures rres)) 4 7))
                                     (ic/sum (subvec (vec (:soil-moistures rres)) 7 11))
-                                    (ic/sum (subvec (vec (:soil-moistures rres)) 11 16))]))
+                                    (ic/sum (subvec (vec (:soil-moistures rres)) 11 16))
+                                    (:effective-precipitation rres)
+                                    (:effective-irrigation rres)
+                                    (:effective-irrigation-uncovered rres)]))
                         inputs full-reductions-results)]
     (cons header-line body-lines)))
 
