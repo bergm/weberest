@@ -1151,15 +1151,19 @@ shallower extraction depth will be used"
   b) there will always be a harvesting (= last dc) step, thus after this step there
   is always fallow unless another crop follows with a dc > 1 (see a)"
   [fallow abs-dc-day-to-crop-instance-data abs-dc-day]
-  (let [fallow* {:rel-dc-day 1
+  (let [fallow* {:dc 0
+                 :rel-dc-day 1
                  :crop fallow}
 
-        first-abs-dc-day (ffirst abs-dc-day-to-crop-instance-data)]
+        ;first-abs-dc-day (ffirst abs-dc-day-to-crop-instance-data)
+        ]
     (if-let [{dc :dc
               rel-dc-day :rel-dc-day
               {crop :crop-instance/template} :crop-instance}
              (get abs-dc-day-to-crop-instance-data abs-dc-day)]
-      {:rel-dc-day rel-dc-day :crop crop}
+      {:dc dc
+       :rel-dc-day rel-dc-day
+       :crop crop}
       (let [{[l-abs-dc-day
               {l-dc :dc
                l-rel-dc-day :rel-dc-day
@@ -1174,7 +1178,9 @@ shallower extraction depth will be used"
         (cond
          ;before summer crop, just fallow, but before winter crop = winter crop
          (and (not lower) upper) (if (> u-dc 1)
-                                   {:rel-dc-day u-rel-dc-day :crop u-crop}
+                                   {:dc u-dc
+                                    :rel-dc-day u-rel-dc-day
+                                    :crop u-crop}
                                    fallow*)
          ;after last crop just fallow
          (and lower (not upper)) fallow*
@@ -1188,7 +1194,8 @@ shallower extraction depth will be used"
                                  ;crop
                                  (and (not= l-crop u-crop)
                                       (> u-dc 1)))
-                             {:rel-dc-day (+ l-rel-dc-day (- abs-dc-day l-abs-dc-day))
+                             {:dc l-dc
+                              :rel-dc-day (+ l-rel-dc-day (- abs-dc-day l-abs-dc-day))
                               :crop l-crop}
                              ;if next crop is a different crop, fallow if
                              ;the next crop's dc is 1 => there new crop will start
@@ -1212,7 +1219,7 @@ shallower extraction depth will be used"
     (for [abs-day (range 1 (-> sorted-weather-map rseq ffirst inc))
           :let [weather (sorted-weather-map abs-day)]
           :while weather]
-      (let [{:keys [rel-dc-day crop]}
+      (let [{:keys [dc rel-dc-day crop]}
             (abs-dc-day->crop-instance (:fallow plot) abs-dc-day-to-crop-instance-data abs-day)
 
             prev-day-cover-degree (interpolated-value (:crop/rel-dc-day-to-cover-degrees crop)
@@ -1220,7 +1227,8 @@ shallower extraction depth will be used"
 
             cover-degree (interpolated-value (:crop/rel-dc-day-to-cover-degrees crop) rel-dc-day)]
 
-        {:abs-day abs-day
+        {:dc dc
+         :abs-day abs-day
          :rel-dc-day rel-dc-day
          :crop crop
          :irrigation-amount (donations-at irrigation-donations abs-day)
@@ -1680,8 +1688,11 @@ the technological restrictions"
                      "sm 60-100cm [mm]"
                      "sm 100-150cm [mm]"
                      "effective-precipitation [mm]"
-                     "effective-irrigation"
-                     "effective-irrigation-uncovered"]
+                     "effective-irrigation [mm]"
+                     "effective-irrigation-uncovered [mm]"
+                     "cover-degree [%]"
+                     "dc"
+                     ":rounded-extraction-depth [cm]"]
 
         body-lines (map (fn [input rres]
                           #_(println rres)
@@ -1730,7 +1741,10 @@ the technological restrictions"
                                     (ic/sum (subvec (vec (:soil-moistures rres)) 11 16))
                                     (:effective-precipitation rres)
                                     (:effective-irrigation rres)
-                                    (:effective-irrigation-uncovered rres)]))
+                                    (:effective-irrigation-uncovered rres)
+                                    (* (:cover-degree input) 100)
+                                    (:dc input)
+                                    (::rounded-extraction-depth-cm input)]))
                         inputs full-reductions-results)]
     (cons header-line body-lines)))
 
