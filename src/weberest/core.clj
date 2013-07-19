@@ -1692,7 +1692,7 @@ the technological restrictions"
                      "effective-irrigation-uncovered [mm]"
                      "cover-degree [%]"
                      "dc"
-                     ":rounded-extraction-depth [cm]"]
+                     "rounded-extraction-depth [cm]"]
 
         body-lines (map (fn [input rres]
                           #_(println rres)
@@ -1744,7 +1744,7 @@ the technological restrictions"
                                     (:effective-irrigation-uncovered rres)
                                     (* (:cover-degree input) 100)
                                     (:dc input)
-                                    (::rounded-extraction-depth-cm input)]))
+                                    (:rounded-extraction-depth-cm input)]))
                         inputs full-reductions-results)]
     (cons header-line body-lines)))
 
