@@ -14,3 +14,5 @@ pom.xml
 /src-cljs
 /.lein-repl-history
 /zalf.csv
+/.idea
+/berest.iml
